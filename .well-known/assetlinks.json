@@ -1,1 +1,9 @@
 
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.stopwatch",
+        "sha256_cert_fingerprints": ["8F:23:34:BB:D7:32:A7:24:E8:CF:C4:0F:39:9D:E9:59:1C:66:27:16:7B:F6:43:DC:2B:A7:CE:3A:55:15:5D:BF"]
+      }
+    }]
