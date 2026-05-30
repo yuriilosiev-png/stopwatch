@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Секундомер</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Секундомер">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0a0f;
+    --fg: #f2f4f8;
+    --accent: #3ddc97;
+    --stop: #ff5a5f;
+    --rest: #ffb454;
+    --dim: #1a1c24;
+    --border: #2a2d38;
+    --muted: #6b7280;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  }
+
+  /* ---------- Вкладки ---------- */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px 0;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+  /* ---------- Экраны ---------- */
+  .screen { flex: 1; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  .center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    padding: 24px;
+  }
+
+  .time {
+    font-variant-numeric: tabular-nums;
+    font-family: "SF Mono", "Roboto Mono", "Consolas", monospace;
+    font-weight: 300;
+    letter-spacing: 1px;
+    line-height: 1;
+    text-align: center;
+  }
+  .time .main { font-size: clamp(56px, 22vw, 120px); }
+  .time .ms { font-size: clamp(24px, 9vw, 48px); color: var(--accent); margin-left: 4px; }
+
+  .controls { display: flex; gap: 20px; width: 100%; max-width: 420px; }
+
+  button.big {
+    flex: 1;
+    border: none;
+    border-radius: 22px;
+    padding: 22px 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #0a0a0f;
+    cursor: pointer;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  button.big:active { transform: scale(0.94); }
+
+  #startStop { background: var(--accent); }
+  #startStop.stop { background: var(--stop); color: #fff; }
+
+  #reset { background: var(--dim); color: var(--fg); border: 1px solid var(--border); }
+  #reset:disabled { opacity: 0.4; cursor: default; }
+
+  /* ---------- Таймер раундов ---------- */
+  #timerRun {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px;
+  }
+  .phase-label {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .phase-work { color: var(--accent); }
+  .phase-rest { color: var(--rest); }
+  .round-info { font-size: 16px; color: var(--muted); }
+  .big-count {
+    font-variant-numeric: tabular-nums;
+    font-family: "SF Mono", "Roboto Mono", monospace;
+    font-size: clamp(72px, 30vw, 160px);
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  /* ---------- Настройка фаз ---------- */
+  .setup { flex: 1; overflow-y: auto; padding: 16px; }
+  .setup h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 8px 4px; }
+
+  .phase-row {
+    background: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .phase-row .top { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .phase-row input.name {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+  .phase-row .del {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--stop);
+    border-radius: 10px;
+    width: 42px; height: 42px;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .phase-row .bottom { display: flex; gap: 10px; align-items: center; }
+  .dur-box { display: flex; align-items: center; gap: 6px; }
+  .dur-box input {
+    width: 56px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 15px;
+    text-align: center;
+  }
+  .dur-box span { color: var(--muted); font-size: 13px; }
+  select.sound {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 15px;
+  }
+  .play-snd {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    border-radius: 10px;
+    width: 42px; height: 42px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .add-phase {
+    width: 100%;
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    color: var(--accent);
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+
+  .opt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .opt-row label { font-size: 15px; }
+  .opt-row .small-in {
+    width: 64px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 15px;
+    text-align: center;
+  }
+  /* переключатель */
+  .switch { position: relative; width: 50px; height: 28px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 28px;
+    transition: .2s;
+  }
+  .slider:before {
+    content: ""; position: absolute;
+    width: 22px; height: 22px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: .2s;
+  }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(22px); }
+
+  .footer-btns { display: flex; gap: 12px; padding: 12px 16px; }
+  .footer-btns button {
+    flex: 1; border: none; border-radius: 18px; padding: 18px 0;
+    font-size: 17px; font-weight: 600; cursor: pointer;
+    transition: transform .08s ease;
+  }
+  .footer-btns button:active { transform: scale(0.95); }
+  #timerStart { background: var(--accent); color: #0a0a0f; }
+  #timerStop  { background: var(--stop); color: #fff; }
+  #timerEdit  { background: var(--dim); color: var(--fg); border: 1px solid var(--border); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+  <div class="tabs">
+    <div class="tab active" data-screen="sw">Секундомер</div>
+    <div class="tab" data-screen="timer">Раунды</div>
+  </div>
+
+  <!-- ===== СЕКУНДОМЕР ===== -->
+  <div class="screen active" id="sw">
+    <div class="center">
+      <div class="time" id="display">
+        <span class="main" id="main">00:00</span><span class="ms" id="ms">.00</span>
+      </div>
+      <div class="controls">
+        <button class="big" id="startStop">Старт</button>
+        <button class="big" id="reset" disabled>Сброс</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ТАЙМЕР РАУНДОВ ===== -->
+  <div class="screen" id="timer">
+
+    <!-- Настройка -->
+    <div class="setup" id="timerSetup">
+      <h3>Фазы (повторяются по кругу)</h3>
+      <div id="phaseList"></div>
+      <button class="add-phase" id="addPhase">+ Добавить фазу</button>
+
+      <h3>Параметры</h3>
+      <div class="opt-row">
+        <label>Кол-во циклов (раундов)</label>
+        <input class="small-in" type="number" id="cycles" min="1" max="99" value="3">
+      </div>
+      <div class="opt-row">
+        <label>Сигнал-предупреждение за 10 сек</label>
+        <span class="switch"><input type="checkbox" id="warnToggle" checked><span class="slider"></span></span>
+      </div>
+    </div>
+
+    <!-- Запуск -->
+    <div id="timerRun" class="hidden">
+      <div class="phase-label phase-work" id="rPhase">РАУНД</div>
+      <div class="big-count" id="rCount">00:00</div>
+      <div class="round-info" id="rInfo">Цикл 1 из 3</div>
+    </div>
+
+    <div class="footer-btns" id="setupBtns">
+      <button id="timerStart">Старт</button>
+    </div>
+    <div class="footer-btns hidden" id="runBtns">
+      <button id="timerStop">Стоп</button>
+      <button id="timerEdit">Сброс</button>
+    </div>
+  </div>
+
+<script>
+  /* ============ ЗВУКИ (Web Audio, офлайн) ============ */
+  let audioCtx = null;
+  function ac() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(freq, start, dur, type, gain) {
+    const ctx = ac();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    o.connect(g); g.connect(ctx.destination);
+    const t0 = ctx.currentTime + start;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.5, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+
+  const SOUNDS = {
+    none:    { name: 'Без звука', play: () => {} },
+    beep:    { name: 'Бип',       play: () => { tone(880, 0, 0.15, 'square', 0.4); } },
+    whistle: { name: 'Свисток',   play: () => {
+                 // высокий, чуть «плавающий» тон + вторая гармоника
+                 tone(2100, 0, 0.45, 'sine', 0.35);
+                 tone(2650, 0, 0.45, 'sine', 0.18);
+               } },
+    gong:    { name: 'Гонг',      play: () => {
+                 // низкий удар с обертонами и долгим затуханием
+                 tone(140, 0, 1.6, 'sine', 0.5);
+                 tone(220, 0, 1.4, 'sine', 0.3);
+                 tone(330, 0, 1.2, 'triangle', 0.2);
+               } }
+  };
+
+  function playSound(key) { (SOUNDS[key] || SOUNDS.none).play(); }
+  function warnBeep() { tone(660, 0, 0.1, 'square', 0.25); }
+
+  /* ============ ВКЛАДКИ ============ */
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById(t.dataset.screen).classList.add('active');
+    });
+  });
+
+  /* ============ СЕКУНДОМЕР ============ */
+  const mainEl  = document.getElementById('main');
+  const msEl    = document.getElementById('ms');
+  const ssBtn   = document.getElementById('startStop');
+  const resetBtn= document.getElementById('reset');
+
+  let startTime = 0, elapsed = 0, swRunning = false, rafId = null;
+
+  function fmt(t) {
+    const totalMs = Math.floor(t);
+    const ms  = Math.floor((totalMs % 1000) / 10);
+    const sec = Math.floor(totalMs / 1000) % 60;
+    const min = Math.floor(totalMs / 60000) % 60;
+    const hr  = Math.floor(totalMs / 3600000);
+    const pad = n => String(n).padStart(2, '0');
+    const main = hr > 0 ? `${pad(hr)}:${pad(min)}:${pad(sec)}` : `${pad(min)}:${pad(sec)}`;
+    return { main, ms: '.' + pad(ms) };
+  }
+  function render(t) { const f = fmt(t); mainEl.textContent = f.main; msEl.textContent = f.ms; }
+  function tick() {
+    render(elapsed + (performance.now() - startTime));
+    rafId = requestAnimationFrame(tick);
+  }
+  function swStart() {
+    swRunning = true; startTime = performance.now();
+    rafId = requestAnimationFrame(tick);
+    ssBtn.textContent = 'Стоп'; ssBtn.classList.add('stop');
+    resetBtn.disabled = false;
+  }
+  function swStop() {
+    swRunning = false; cancelAnimationFrame(rafId);
+    elapsed += performance.now() - startTime; render(elapsed);
+    ssBtn.textContent = 'Старт'; ssBtn.classList.remove('stop');
+  }
+  function swReset() {
+    swRunning = false; cancelAnimationFrame(rafId);
+    elapsed = 0; render(0);
+    ssBtn.textContent = 'Старт'; ssBtn.classList.remove('stop');
+    resetBtn.disabled = true;
+  }
+  ssBtn.addEventListener('click', () => { ac(); swRunning ? swStop() : swStart(); });
+  resetBtn.addEventListener('click', swReset);
+  render(0);
+
+  /* ============ ТАЙМЕР РАУНДОВ ============ */
+  // фаза: { name, min, sec, sound }
+  let phases = [
+    { name: 'Раунд',  min: 2, sec: 0, sound: 'gong' },
+    { name: 'Отдых',  min: 1, sec: 0, sound: 'whistle' }
+  ];
+
+  const phaseList = document.getElementById('phaseList');
+
+  function soundOptions(selected) {
+    return Object.keys(SOUNDS).map(k =>
+      `<option value="${k}" ${k === selected ? 'selected' : ''}>${SOUNDS[k].name}</option>`
+    ).join('');
+  }
+
+  function renderPhases() {
+    phaseList.innerHTML = '';
+    phases.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'phase-row';
+      row.innerHTML = `
+        <div class="top">
+          <input class="name" type="text" value="${p.name}" data-i="${i}" data-f="name">
+          <button class="del" data-i="${i}">✕</button>
+        </div>
+        <div class="bottom">
+          <div class="dur-box">
+            <input type="number" min="0" max="59" value="${p.min}" data-i="${i}" data-f="min"><span>мин</span>
+          </div>
+          <div class="dur-box">
+            <input type="number" min="0" max="59" value="${p.sec}" data-i="${i}" data-f="sec"><span>сек</span>
+          </div>
+          <select class="sound" data-i="${i}" data-f="sound">${soundOptions(p.sound)}</select>
+          <button class="play-snd" data-i="${i}">▶</button>
+        </div>`;
+      phaseList.appendChild(row);
+    });
+
+    // обработчики ввода
+    phaseList.querySelectorAll('input.name, select.sound, .dur-box input').forEach(el => {
+      el.addEventListener('change', e => {
+        const i = +e.target.dataset.i, f = e.target.dataset.f;
+        if (f === 'name') phases[i].name = e.target.value;
+        else if (f === 'sound') phases[i].sound = e.target.value;
+        else phases[i][f] = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
+      });
+    });
+    phaseList.querySelectorAll('.del').forEach(b => {
+      b.addEventListener('click', e => {
+        if (phases.length <= 1) return;
+        phases.splice(+e.target.dataset.i, 1); renderPhases();
+      });
+    });
+    phaseList.querySelectorAll('.play-snd').forEach(b => {
+      b.addEventListener('click', e => { ac(); playSound(phases[+e.target.dataset.i].sound); });
+    });
+  }
+  renderPhases();
+
+  document.getElementById('addPhase').addEventListener('click', () => {
+    phases.push({ name: 'Фаза ' + (phases.length + 1), min: 1, sec: 0, sound: 'beep' });
+    renderPhases();
+  });
+
+  // --- запуск таймера ---
+  const tSetup = document.getElementById('timerSetup');
+  const tRun   = document.getElementById('timerRun');
+  const setupBtns = document.getElementById('setupBtns');
+  const runBtns   = document.getElementById('runBtns');
+  const rPhase = document.getElementById('rPhase');
+  const rCount = document.getElementById('rCount');
+  const rInfo  = document.getElementById('rInfo');
+
+  let tInterval = null, tCurPhase = 0, tCurCycle = 1, tTotalCycles = 3, tRemain = 0, tWarned = false, tWarn = true;
+
+  function fmtSec(s) {
+    const m = Math.floor(s / 60), sec = s % 60;
+    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+
+  function showPhase() {
+    const p = phases[tCurPhase];
+    rPhase.textContent = p.name.toUpperCase();
+    // цвет: первая фаза в списке = "работа", остальные с "отдых"/"rest" в имени = оранжевый
+    const isRest = /отдых|rest|пауза|перерыв/i.test(p.name);
+    rPhase.className = 'phase-label ' + (isRest ? 'phase-rest' : 'phase-work');
+    rCount.textContent = fmtSec(tRemain);
+    rInfo.textContent = `Цикл ${tCurCycle} из ${tTotalCycles}`;
+  }
+
+  function startPhase() {
+    const p = phases[tCurPhase];
+    tRemain = p.min * 60 + p.sec;
+    tWarned = false;
+    if (tRemain <= 0) { nextPhase(); return; }
+    playSound(p.sound); // сигнал в начале фазы
+    showPhase();
+  }
+
+  function nextPhase() {
+    tCurPhase++;
+    if (tCurPhase >= phases.length) {
+      tCurPhase = 0;
+      tCurCycle++;
+      if (tCurCycle > tTotalCycles) { finishTimer(); return; }
+    }
+    startPhase();
+  }
+
+  function timerTick() {
+    tRemain--;
+    if (tWarn && !tWarned && tRemain === 10) { tWarned = true; warnBeep(); }
+    if (tRemain <= 0) { nextPhase(); return; }
+    showPhase();
+  }
+
+  function finishTimer() {
+    clearInterval(tInterval); tInterval = null;
+    playSound('gong');
+    rPhase.textContent = 'ГОТОВО';
+    rPhase.className = 'phase-label phase-work';
+    rCount.textContent = '00:00';
+    rInfo.textContent = 'Тренировка завершена';
+    // через 2 сек вернуть к настройке
+    setTimeout(stopTimer, 2500);
+  }
+
+  function startTimer() {
+    ac();
+    tTotalCycles = Math.max(1, parseInt(document.getElementById('cycles').value) || 1);
+    tWarn = document.getElementById('warnToggle').checked;
+    tCurPhase = 0; tCurCycle = 1;
+    tSetup.classList.add('hidden'); tRun.classList.remove('hidden');
+    setupBtns.classList.add('hidden'); runBtns.classList.remove('hidden');
+    startPhase();
+    tInterval = setInterval(timerTick, 1000);
+  }
+
+  function stopTimer() {
+    if (tInterval) { clearInterval(tInterval); tInterval = null; }
+    tRun.classList.add('hidden'); tSetup.classList.remove('hidden');
+    runBtns.classList.add('hidden'); setupBtns.classList.remove('hidden');
+  }
+
+  document.getElementById('timerStart').addEventListener('click', startTimer);
+  document.getElementById('timerStop').addEventListener('click', stopTimer);
+  document.getElementById('timerEdit').addEventListener('click', stopTimer);
+
+  /* ============ SERVICE WORKER ============ */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
