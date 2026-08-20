@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фолбэк-иконка для Android < 8.0 (adaptive-icon доступен только с API 26) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ic_bg"/>
+    <item android:drawable="@drawable/ic_launcher_fg"/>
+</layer-list>
