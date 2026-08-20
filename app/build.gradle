@@ -1,0 +1,47 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.yuriilosiev.stopwatch'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.yuriilosiev.stopwatch"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+        resConfigs "en", "ru"
+    }
+
+    // Подпись релиза: активна только если в окружении есть переменные
+    // (в GitHub Actions они приходят из secrets, локально их просто нет).
+    signingConfigs {
+        release {
+            def ks = System.getenv("KEYSTORE_FILE")
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (System.getenv("KEYSTORE_FILE")) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+}
