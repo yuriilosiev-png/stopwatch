@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Секундомер</string>
+    <string name="cd_event">Событие</string>
+    <string name="cd_done">Время вышло</string>
+    <string name="btn_stop_alarm">Выключить сигнал</string>
+    <string name="ch_shade">Отсчёт в шторке</string>
+    <string name="ch_shade_desc">Постоянное уведомление с остатком времени</string>
+    <string name="ch_alarm">Сигнал отсчёта</string>
+    <string name="ch_alarm_desc">Звук по достижении нуля</string>
+    <string name="u_y">л</string>
+    <string name="u_mo">мес</string>
+    <string name="u_d">дн</string>
+</resources>
