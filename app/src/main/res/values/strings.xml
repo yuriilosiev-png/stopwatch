@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stopwatch</string>
+    <string name="cd_event">Event</string>
+    <string name="cd_done">Time is up</string>
+    <string name="btn_stop_alarm">Stop alarm</string>
+    <string name="ch_shade">Countdown in the shade</string>
+    <string name="ch_shade_desc">Ongoing notification with the remaining time</string>
+    <string name="ch_alarm">Countdown alarm</string>
+    <string name="ch_alarm_desc">Sound when the countdown reaches zero</string>
+    <string name="u_y">yr</string>
+    <string name="u_mo">mo</string>
+    <string name="u_d">d</string>
+</resources>
