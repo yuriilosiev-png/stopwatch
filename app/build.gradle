@@ -1,5 +1,9 @@
 plugins { id 'com.android.application' }
 
+// Номер сборки берётся из счётчика прогонов GitHub Actions и растёт сам.
+// Локально (без CI) подставляется 1.
+def buildNumber = (System.getenv("VERSION_CODE") ?: "1") as int
+
 android {
     namespace 'com.yuriilosiev.stopwatch'
     compileSdk 36
@@ -8,10 +12,8 @@ android {
         applicationId "com.yuriilosiev.stopwatch"
         minSdk 24
         targetSdk 36
-              // Номер сборки берётся из счётчика прогонов GitHub Actions и растёт сам.
-        // Локально (без CI) подставляется 1.
-        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
-        versionName "1.0." + (System.getenv("VERSION_CODE") ?: "1")
+        versionCode buildNumber
+        versionName "1.0." + buildNumber
         resConfigs "en", "ru"
     }
 
