@@ -1,6 +1,7 @@
 package com.yuriilosiev.stopwatch;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -8,20 +9,16 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 /**
  * Оболочка WebView. HTML лежит в assets — приложение полностью работает без интернета.
+ * Внешних библиотек нет, только системный SDK.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     public static final int ALARM_REQUEST = 7001;
     private WebView web;
@@ -45,8 +42,6 @@ public class MainActivity extends AppCompatActivity {
         web.setWebViewClient(new WebViewClient());
         web.setBackgroundColor(0xFF0A0A0F);
         web.addJavascriptInterface(new Bridge(this), "Android");
-
-        web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         web.loadUrl("file:///android_asset/index.html");
 
         requestNotificationPermission();
@@ -54,10 +49,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
     }
 
@@ -102,8 +96,7 @@ public class MainActivity extends AppCompatActivity {
     /* ================= Точный будильник ================= */
     static PendingIntent alarmIntent(Context ctx) {
         Intent i = new Intent(ctx, AlarmReceiver.class);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags |= PendingIntent.FLAG_IMMUTABLE;
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         return PendingIntent.getBroadcast(ctx, ALARM_REQUEST, i, flags);
     }
 
@@ -117,9 +110,7 @@ public class MainActivity extends AppCompatActivity {
         if (am == null) return;
         PendingIntent show = PendingIntent.getActivity(ctx, ALARM_REQUEST + 1,
                 new Intent(ctx, MainActivity.class),
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                        ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                        : PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.setAlarmClock(new AlarmManager.AlarmClockInfo(targetMs, show), alarmIntent(ctx));
     }
 
