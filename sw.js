@@ -1,5 +1,5 @@
 // Версию повышай при каждом релизе: v2 -> v3 -> v4 ...
-const CACHE = 'stopwatch-v4';
+const CACHE = 'stopwatch-v5';
 const ASSETS = [
   './',
   './index.html',
