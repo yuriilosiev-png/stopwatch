@@ -42,6 +42,6 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'androidx.core:core:1.13.1'
+    // Зависимостей нет: обёртке достаточно системного Activity и WebView.
+    // Так в classpath не попадает Kotlin и не возникает конфликта stdlib-jdk7/jdk8.
 }
