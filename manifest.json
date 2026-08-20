@@ -1,14 +1,17 @@
 {
-  "name": "Секундомер",
+  "name": "Секундомер · Stopwatch",
   "short_name": "Секундомер",
-  "description": "Простой секундомер: старт, стоп, сброс.",
+  "description": "Секундомер, таймер раундов и обратный отсчёт до события. Работает офлайн.",
   "lang": "ru",
+  "dir": "ltr",
+  "id": "/stopwatch/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
+  "categories": ["utilities", "productivity"],
   "icons": [
     {
       "src": "icon-192.png",
