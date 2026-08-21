@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,17 +22,25 @@ public class CountdownService extends Service {
     public static final String CHANNEL_ID = "countdown_shade";
     private static final int NOTIF_ID = 101;
 
+    /** Состояние для диагностики из JS (MainActivity.Bridge.status). */
+    public static volatile boolean RUNNING = false;
+    public static volatile String LAST_ERROR = "";
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable ticker;
 
     public static void start(Context ctx) {
         Intent i = new Intent(ctx, CountdownService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i);
-        else ctx.startService(i);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i);
+            else ctx.startService(i);
+        } catch (Exception e) {
+            LAST_ERROR = "startService: " + e;
+        }
     }
 
     public static void stop(Context ctx) {
-        ctx.stopService(new Intent(ctx, CountdownService.class));
+        try { ctx.stopService(new Intent(ctx, CountdownService.class)); } catch (Exception ignored) { }
     }
 
     @Override
@@ -46,7 +55,24 @@ public class CountdownService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
-        startForeground(NOTIF_ID, buildNotification());
+
+        try {
+            // Android 14+: тип обязателен прямо в вызове, иначе ForegroundServiceTypeException.
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIF_ID, buildNotification(),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                startForeground(NOTIF_ID, buildNotification());
+            }
+            RUNNING = true;
+            LAST_ERROR = "";
+        } catch (Exception e) {
+            RUNNING = false;
+            LAST_ERROR = String.valueOf(e);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
         scheduleTick();
         return START_STICKY;   // система вернёт сервис, если убьёт его при нехватке памяти
     }
@@ -59,8 +85,12 @@ public class CountdownService extends Service {
                 long now = System.currentTimeMillis();
                 long remain = CountdownStore.target(CountdownService.this) - now;
 
-                NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                if (nm != null) nm.notify(NOTIF_ID, buildNotification());
+                try {
+                    NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                    if (nm != null) nm.notify(NOTIF_ID, buildNotification());
+                } catch (Exception e) {
+                    LAST_ERROR = "notify: " + e;
+                }
 
                 if (remain <= 0) { stopSelf(); return; }   // звук поднимет AlarmReceiver
                 handler.postDelayed(this, CountdownStore.tickInterval(remain));
@@ -82,9 +112,7 @@ public class CountdownService extends Service {
 
         PendingIntent open = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class),
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                        ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                        : PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? new Notification.Builder(this, CHANNEL_ID)
@@ -92,15 +120,13 @@ public class CountdownService extends Service {
 
         b.setContentTitle(title)
                 .setContentText(body)
-                .setSmallIcon(android.R.drawable.ic_menu_recent_history)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                 .setContentIntent(open)
                 .setOngoing(true)
                 .setShowWhen(false)
-                .setOnlyAlertOnce(true);
+                .setOnlyAlertOnce(true)
+                .setVisibility(Notification.VISIBILITY_PUBLIC);   // видно на локскрине
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            b.setVisibility(Notification.VISIBILITY_PUBLIC);   // видно на локскрине
-        }
         return b.build();
     }
 
@@ -118,6 +144,7 @@ public class CountdownService extends Service {
 
     @Override
     public void onDestroy() {
+        RUNNING = false;
         if (ticker != null) handler.removeCallbacks(ticker);
         super.onDestroy();
     }
