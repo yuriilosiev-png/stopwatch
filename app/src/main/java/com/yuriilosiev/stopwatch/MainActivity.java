@@ -3,6 +3,8 @@ package com.yuriilosiev.stopwatch;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -91,13 +93,39 @@ public class MainActivity extends Activity {
             if (shade && CountdownStore.isActive(ctx)) CountdownService.start(ctx);
             else CountdownService.stop(ctx);
         }
+
+        /** Диагностика для строки состояния под тумблером. */
+        @JavascriptInterface
+        public String status() {
+            boolean notifEnabled = true;
+            boolean channelOn = true;
+            try {
+                NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null) {
+                    notifEnabled = nm.areNotificationsEnabled();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        NotificationChannel ch = nm.getNotificationChannel(CountdownService.CHANNEL_ID);
+                        channelOn = ch == null || ch.getImportance() != NotificationManager.IMPORTANCE_NONE;
+                    }
+                }
+            } catch (Exception ignored) { }
+
+            return "{\"active\":" + CountdownStore.isActive(ctx)
+                    + ",\"shade\":" + CountdownStore.shade(ctx)
+                    + ",\"running\":" + CountdownService.RUNNING
+                    + ",\"notifEnabled\":" + notifEnabled
+                    + ",\"channelOn\":" + channelOn
+                    + ",\"error\":" + (CountdownService.LAST_ERROR.isEmpty()
+                            ? "null" : "\"" + CountdownService.LAST_ERROR.replace("\"", "'") + "\"")
+                    + "}";
+        }
     }
 
     /* ================= Точный будильник ================= */
     static PendingIntent alarmIntent(Context ctx) {
         Intent i = new Intent(ctx, AlarmReceiver.class);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
-        return PendingIntent.getBroadcast(ctx, ALARM_REQUEST, i, flags);
+        return PendingIntent.getBroadcast(ctx, ALARM_REQUEST, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /**
