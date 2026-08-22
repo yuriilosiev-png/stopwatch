@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Интерфейс грузится с GitHub Pages; офлайн держит service worker -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Постоянное уведомление-отсчёт в шторке -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
