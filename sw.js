@@ -1,4 +1,4 @@
-// Версию повышай при каждом релизе: v2 -> v3 -> v4 ...
+// Версия подставляется автоматически из хеша index.html (GitHub Actions).
 const CACHE = 'stopwatch-c047bc88';
 const ASSETS = [
   './',
@@ -36,9 +36,11 @@ self.addEventListener('fetch', (e) => {
                  (req.headers.get('accept') || '').includes('text/html');
 
   if (isHTML) {
-    // HTML: сеть впереди (всегда свежая версия), кэш — офлайн-резерв
+    // HTML: сеть впереди, кэш — офлайн-резерв.
+    // cache:'reload' обязателен: GitHub Pages отдаёт страницу с max-age,
+    // и без него fetch вернёт копию из HTTP-кэша, а не свежую версию.
     e.respondWith(
-      fetch(req).then((res) => {
+      fetch(req, { cache: 'reload' }).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));
         return res;
