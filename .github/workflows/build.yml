@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       VERSION_CODE: ${{ github.run_number }}
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -16,6 +18,18 @@ jobs:
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Версия кэша sw.js из хеша index.html
+        run: |
+          HASH=$(sha256sum index.html | cut -c1-8)
+          if ! grep -q "stopwatch-$HASH" sw.js; then
+            sed -i "s/const CACHE = '.*';/const CACHE = 'stopwatch-$HASH';/" sw.js
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add sw.js
+            git commit -m "sw.js: кэш $HASH [skip ci]"
+            git push
+          fi
 
       - name: Copy root index.html into assets
         run: |
