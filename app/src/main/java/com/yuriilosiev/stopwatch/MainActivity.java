@@ -9,20 +9,28 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * Оболочка WebView. HTML лежит в assets — приложение полностью работает без интернета.
- * Внешних библиотек нет, только системный SDK.
+ * Оболочка WebView. Интерфейс живёт на GitHub Pages и обновляется без пересборки APK;
+ * офлайн обеспечивает service worker, который кэширует страницу при первом запуске.
  */
 public class MainActivity extends Activity {
 
     public static final int ALARM_REQUEST = 7001;
+
+    /** Единственный адрес интерфейса. Origin всегда один — localStorage не теряется. */
+    private static final String APP_URL = "https://yuriilosiev-png.github.io/stopwatch/index.html";
+    private static final String APP_HOST = "yuriilosiev-png.github.io";
+
     private WebView web;
 
     @Override
@@ -38,13 +46,31 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setAllowFileAccess(false);
+        s.setAllowFileAccess(false);           // assets при этом остаются доступны
         s.setAllowContentAccess(false);
 
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            /** Наружные ссылки уводим в браузер, внутри WebView живёт только своя страница. */
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                Uri u = req.getUrl();
+                if (u != null && APP_HOST.equals(u.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
+                return true;
+            }
+
+            /** Сети нет и в кэше пусто — показываем заглушку из пакета. */
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
+                if (req != null && req.isForMainFrame()) {
+                    view.loadUrl("file:///android_asset/offline.html");
+                }
+            }
+        });
+
         web.setBackgroundColor(0xFF0A0A0F);
         web.addJavascriptInterface(new Bridge(this), "Android");
-        web.loadUrl("file:///android_asset/index.html");
+        web.loadUrl(APP_URL);
 
         requestNotificationPermission();
     }
@@ -67,7 +93,10 @@ public class MainActivity extends Activity {
         private final Context ctx;
         Bridge(Context c) { this.ctx = c.getApplicationContext(); }
 
-        /** Вызывается из index.html при старте отсчёта. */
+        /** Версия моста: страница может проверить, что умеет установленный APK. */
+        @JavascriptInterface
+        public int bridgeVersion() { return 2; }
+
         @JavascriptInterface
         public void startCountdown(String targetMs, String title, boolean shade, boolean sound) {
             long target;
