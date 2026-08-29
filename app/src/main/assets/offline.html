@@ -15,8 +15,23 @@
 </style>
 </head>
 <body>
-  <h2>Нет соединения</h2>
-  <p>Первый запуск требует интернета — приложение сохранит себя в память телефона и дальше будет работать без сети.</p>
-  <a href="https://yuriilosiev-png.github.io/stopwatch/index.html">Повторить</a>
+  <h2 id="t">Нет соединения</h2>
+  <p id="m">Первый запуск требует интернета — приложение сохранит себя в память телефона и дальше будет работать без сети.</p>
+  <a id="b" href="https://yuriilosiev-png.github.io/stopwatch/index.html">Повторить</a>
+<script>
+(function () {
+  // страница лежит в assets, это отдельный origin — сохранённый выбор языка отсюда не виден,
+  // поэтому ориентируемся на язык системы
+  var lang = (navigator.language || 'en').toLowerCase();
+  if (lang.indexOf('ru') === 0) return;   // разметка уже на русском
+
+  document.documentElement.lang = 'en';
+  document.title = 'No connection';
+  document.getElementById('t').textContent = 'No connection';
+  document.getElementById('m').textContent =
+    'The first launch needs the internet — the app saves itself to your phone and works without a network afterwards.';
+  document.getElementById('b').textContent = 'Retry';
+})();
+</script>
 </body>
 </html>
