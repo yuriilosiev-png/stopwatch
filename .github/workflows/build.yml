@@ -31,11 +31,6 @@ jobs:
             git push
           fi
 
-      - name: Copy root index.html into assets
-        run: |
-          mkdir -p app/src/main/assets
-          cp index.html app/src/main/assets/index.html
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
