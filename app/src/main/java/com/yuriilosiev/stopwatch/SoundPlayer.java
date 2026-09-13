@@ -116,6 +116,7 @@ public final class SoundPlayer {
     private static int resFor(Context c, String kind) {
         switch (kind) {
             case "gong":    return R.raw.cue_gong;
+            case "bell":    return R.raw.cue_bell;
             case "whistle": return R.raw.cue_whistle;
             case "beep":    return R.raw.cue_beep;
             case "warn":    return R.raw.cue_warn;
