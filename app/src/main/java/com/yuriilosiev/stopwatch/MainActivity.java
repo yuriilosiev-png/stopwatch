@@ -183,3 +183,74 @@ public class MainActivity extends Activity {
 
             CountdownStore.save(ctx, target, title, shade, sound);
             scheduleAlarm(ctx, target, sound);
+            if (shade) CountdownService.start(ctx); else CountdownService.stop(ctx);
+        }
+
+        @JavascriptInterface
+        public void stopCountdown() {
+            cancelAlarm(ctx);
+            CountdownStore.clear(ctx);
+            CountdownService.stop(ctx);
+            AlarmService.stop(ctx);
+        }
+
+        @JavascriptInterface
+        public void updateShade(boolean shade) {
+            CountdownStore.setShade(ctx, shade);
+            if (shade && CountdownStore.isActive(ctx)) CountdownService.start(ctx);
+            else CountdownService.stop(ctx);
+        }
+
+        /** Диагностика для строки состояния под тумблером. */
+        @JavascriptInterface
+        public String status() {
+            boolean notifEnabled = true;
+            boolean channelOn = true;
+            try {
+                NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null) {
+                    notifEnabled = nm.areNotificationsEnabled();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        NotificationChannel ch = nm.getNotificationChannel(CountdownService.CHANNEL_ID);
+                        channelOn = ch == null || ch.getImportance() != NotificationManager.IMPORTANCE_NONE;
+                    }
+                }
+            } catch (Exception ignored) { }
+
+            return "{\"active\":" + CountdownStore.isActive(ctx)
+                    + ",\"shade\":" + CountdownStore.shade(ctx)
+                    + ",\"running\":" + CountdownService.RUNNING
+                    + ",\"notifEnabled\":" + notifEnabled
+                    + ",\"channelOn\":" + channelOn
+                    + ",\"error\":" + (CountdownService.LAST_ERROR.isEmpty()
+                            ? "null" : "\"" + CountdownService.LAST_ERROR.replace("\"", "'") + "\"")
+                    + "}";
+        }
+    }
+
+    /* ================= Точный будильник ================= */
+    static PendingIntent alarmIntent(Context ctx) {
+        Intent i = new Intent(ctx, AlarmReceiver.class);
+        return PendingIntent.getBroadcast(ctx, ALARM_REQUEST, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /**
+     * setAlarmClock — единственный тип, который не откладывается в Doze:
+     * сигнал прозвучит даже при заблокированном экране и спящем устройстве.
+     */
+    static void scheduleAlarm(Context ctx, long targetMs, boolean sound) {
+        if (!sound) { cancelAlarm(ctx); return; }
+        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        PendingIntent show = PendingIntent.getActivity(ctx, ALARM_REQUEST + 1,
+                new Intent(ctx, MainActivity.class),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        am.setAlarmClock(new AlarmManager.AlarmClockInfo(targetMs, show), alarmIntent(ctx));
+    }
+
+    static void cancelAlarm(Context ctx) {
+        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am != null) am.cancel(alarmIntent(ctx));
+    }
+}
