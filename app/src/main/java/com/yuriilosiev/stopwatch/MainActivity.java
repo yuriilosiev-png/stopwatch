@@ -21,6 +21,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 /**
  * Оболочка WebView. Интерфейс живёт на GitHub Pages и обновляется без пересборки APK;
  * офлайн обеспечивает service worker, который кэширует страницу при первом запуске.
@@ -93,14 +98,31 @@ public class MainActivity extends Activity {
 
     /* ================= Выбор своего звука ================= */
 
-    /** Открывает системный выбор файла. Слот запоминаем, чтобы знать, куда записать результат. */
+    /**
+     * Выбор своего звука из любого источника.
+     *
+     * ACTION_OPEN_DOCUMENT показывает только поставщиков документов (Диск, Загрузки, Файлы).
+     * Приложения вроде Telegram или плееров отдают файлы через ACTION_GET_CONTENT, поэтому
+     * основным берём его, а OPEN_DOCUMENT добавляем в тот же диалог отдельным пунктом.
+     */
     void openSoundPicker(String slot) {
         pendingSlot = slot;
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.addCategory(Intent.CATEGORY_OPENABLE);
-        i.setType("audio/*");
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        try { startActivityForResult(i, PICK_SOUND); } catch (Exception e) { pendingSlot = null; }
+
+        Intent get = new Intent(Intent.ACTION_GET_CONTENT);
+        get.addCategory(Intent.CATEGORY_OPENABLE);
+        get.setType("audio/*");
+        get.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{ "audio/*", "application/ogg" });
+
+        Intent doc = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        doc.addCategory(Intent.CATEGORY_OPENABLE);
+        doc.setType("audio/*");
+        doc.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{ "audio/*", "application/ogg" });
+
+        Intent chooser = Intent.createChooser(get, getString(R.string.pick_sound));
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{ doc });
+
+        try { startActivityForResult(chooser, PICK_SOUND); }
+        catch (Exception e) { pendingSlot = null; }
     }
 
     @Override
@@ -112,16 +134,52 @@ public class MainActivity extends Activity {
         pendingSlot = null;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
 
-        Uri uri = data.getData();
-        try {
-            // Без этого доступ к файлу пропадёт после перезапуска приложения.
-            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Exception ignored) { }
+        final Uri uri = data.getData();
+        final String name = displayName(uri);
 
-        SoundPlayer.saveCustom(this, slot, uri.toString(), displayName(uri));
-        // Сообщаем интерфейсу, что список звуков изменился.
-        web.post(() -> web.evaluateJavascript(
-                "window.onCustomSoundsChanged && window.onCustomSoundsChanged();", null));
+        // Файл копируем внутрь приложения. Ссылки от Telegram, плееров и прочих
+        // источников живут до перезапуска, а из кэша файл может исчезнуть совсем.
+        new Thread(() -> {
+            final String stored = copyToLocal(uri, slot);
+            runOnUiThread(() -> {
+                if (stored == null) return;
+                SoundPlayer.saveCustom(MainActivity.this, slot, stored, name);
+                // Сообщаем интерфейсу, что список звуков изменился.
+                web.post(() -> web.evaluateJavascript(
+                        "window.onCustomSoundsChanged && window.onCustomSoundsChanged();", null));
+            });
+        }).start();
+    }
+
+    /** Копия выбранного файла в личную папку приложения. Возвращает file:// ссылку или null. */
+    private String copyToLocal(Uri uri, String slot) {
+        File dir = new File(getFilesDir(), "sounds");
+        if (!dir.exists() && !dir.mkdirs()) return null;
+        File out = new File(dir, "custom" + slot + ".snd");
+        File tmp = new File(dir, "custom" + slot + ".tmp");
+
+        long limit = 20L * 1024 * 1024;   // 20 МБ хватает с запасом, длинные треки не нужны
+        long total = 0;
+
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             OutputStream os = new FileOutputStream(tmp)) {
+            if (in == null) return null;
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                total += n;
+                if (total > limit) { tmp.delete(); return null; }
+                os.write(buf, 0, n);
+            }
+            os.flush();
+        } catch (Exception e) {
+            tmp.delete();
+            return null;
+        }
+
+        if (out.exists()) out.delete();
+        if (!tmp.renameTo(out)) { tmp.delete(); return null; }
+        return Uri.fromFile(out).toString();
     }
 
     private String displayName(Uri uri) {
