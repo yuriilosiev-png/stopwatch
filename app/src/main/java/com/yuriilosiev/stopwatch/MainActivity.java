@@ -2,6 +2,7 @@ package com.yuriilosiev.stopwatch;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -9,6 +10,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -24,6 +27,8 @@ import android.webkit.WebViewClient;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.OutputStream;
 
 /**
@@ -86,6 +91,44 @@ public class MainActivity extends Activity {
         SoundPlayer.init(this);
 
         requestNotificationPermission();
+        handleShared(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleShared(intent);
+    }
+
+    /**
+     * Приём файла по «Поделиться». Telegram и большинство плееров не отдают файлы
+     * через выбор из чужого приложения — зато умеют делиться в него.
+     */
+    private void handleShared(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+
+        String type = intent.getType();
+        if (type == null || !(type.startsWith("audio/") || "application/ogg".equals(type))) return;
+
+        Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        if (uri == null) return;
+
+        intent.setAction(null);   // иначе диалог всплывёт снова при возврате в приложение
+
+        final Uri src = uri;
+        final String name = displayName(src);
+        String[] slots = {
+                getString(R.string.slot_1),
+                getString(R.string.slot_2),
+                getString(R.string.slot_3)
+        };
+        try {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.save_sound_to)
+                    .setItems(slots, (d, which) -> saveSound(src, String.valueOf(which + 1), name))
+                    .show();
+        } catch (Exception ignored) { }
     }
 
     private void requestNotificationPermission() {
@@ -99,30 +142,68 @@ public class MainActivity extends Activity {
     /* ================= Выбор своего звука ================= */
 
     /**
-     * Выбор своего звука из любого источника.
-     *
-     * ACTION_OPEN_DOCUMENT показывает только поставщиков документов (Диск, Загрузки, Файлы).
-     * Приложения вроде Telegram или плееров отдают файлы через ACTION_GET_CONTENT, поэтому
-     * основным берём его, а OPEN_DOCUMENT добавляем в тот же диалог отдельным пунктом.
+     * Свой список источников. Системный выбор файла открывается на «Недавних»,
+     * и пользователь не находит ни Загрузки, ни память телефона — они спрятаны в боковом меню.
+     * Поэтому каждый источник открываем сразу в нужной папке.
      */
     void openSoundPicker(String slot) {
         pendingSlot = slot;
 
+        final List<String> titles = new ArrayList<>();
+        final List<Intent> intents = new ArrayList<>();
+
+        titles.add(getString(R.string.src_downloads));
+        intents.add(docIntent("com.android.providers.downloads.documents", "downloads"));
+
+        titles.add(getString(R.string.src_files));
+        intents.add(docIntent("com.android.externalstorage.documents", "primary"));
+
+        // Фонотека: плееры отвечают на выбор медиа, но не на выбор файла.
+        Intent pick = new Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+        pick.setType("audio/*");
+        if (pick.resolveActivity(getPackageManager()) != null) {
+            titles.add(getString(R.string.src_music));
+            intents.add(pick);
+        }
+
+        // Диск, Telegram и всё, что умеет отдавать файл наружу.
         Intent get = new Intent(Intent.ACTION_GET_CONTENT);
         get.addCategory(Intent.CATEGORY_OPENABLE);
         get.setType("audio/*");
         get.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{ "audio/*", "application/ogg" });
+        titles.add(getString(R.string.src_apps));
+        intents.add(Intent.createChooser(get, getString(R.string.pick_sound)));
 
-        Intent doc = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        doc.addCategory(Intent.CATEGORY_OPENABLE);
-        doc.setType("audio/*");
-        doc.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{ "audio/*", "application/ogg" });
+        try {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.pick_source)
+                    .setItems(titles.toArray(new String[0]), (d, which) -> {
+                        try { startActivityForResult(intents.get(which), PICK_SOUND); }
+                        catch (Exception e) { pendingSlot = null; }
+                    })
+                    .setOnCancelListener(d -> pendingSlot = null)
+                    .show();
+        } catch (Exception e) {
+            pendingSlot = null;
+        }
+    }
 
-        Intent chooser = Intent.createChooser(get, getString(R.string.pick_sound));
-        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{ doc });
-
-        try { startActivityForResult(chooser, PICK_SOUND); }
-        catch (Exception e) { pendingSlot = null; }
+    /** Выбор файла, открытый сразу в нужном хранилище. */
+    private Intent docIntent(String authority, String rootId) {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        // Скачанный из интернета файл нередко приходит без звукового типа,
+        // при фильтре audio/* он в списке просто не виден.
+        i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                "audio/*", "application/ogg", "application/octet-stream" });
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                i.putExtra(DocumentsContract.EXTRA_INITIAL_URI,
+                        DocumentsContract.buildRootUri(authority, rootId));
+            } catch (Exception ignored) { }
+        }
+        return i;
     }
 
     @Override
@@ -134,18 +215,21 @@ public class MainActivity extends Activity {
         pendingSlot = null;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
 
-        final Uri uri = data.getData();
-        final String name = displayName(uri);
+        saveSound(data.getData(), slot, displayName(data.getData()));
+    }
 
-        // Файл копируем внутрь приложения. Ссылки от Telegram, плееров и прочих
-        // источников живут до перезапуска, а из кэша файл может исчезнуть совсем.
+    /**
+     * Копирует выбранный файл внутрь приложения и записывает его в слот.
+     * Ссылки от Telegram и плееров живут до перезапуска, а из кэша файл может исчезнуть совсем.
+     */
+    private void saveSound(final Uri uri, final String slot, final String name) {
         new Thread(() -> {
             final String stored = copyToLocal(uri, slot);
             runOnUiThread(() -> {
                 if (stored == null) return;
                 SoundPlayer.saveCustom(MainActivity.this, slot, stored, name);
                 // Сообщаем интерфейсу, что список звуков изменился.
-                web.post(() -> web.evaluateJavascript(
+                if (web != null) web.post(() -> web.evaluateJavascript(
                         "window.onCustomSoundsChanged && window.onCustomSoundsChanged();", null));
             });
         }).start();
