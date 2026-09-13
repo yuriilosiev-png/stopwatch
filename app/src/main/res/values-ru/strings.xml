@@ -11,4 +11,5 @@
     <string name="u_y">л</string>
     <string name="u_mo">мес</string>
     <string name="u_d">дн</string>
+    <string name="pick_sound">Выбрать звук</string>
 </resources>
