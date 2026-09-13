@@ -12,4 +12,13 @@
     <string name="u_mo">мес</string>
     <string name="u_d">дн</string>
     <string name="pick_sound">Выбрать звук</string>
+    <string name="save_sound_to">Сохранить звук в</string>
+    <string name="slot_1">Свой звук 1</string>
+    <string name="slot_2">Свой звук 2</string>
+    <string name="slot_3">Свой звук 3</string>
+    <string name="pick_source">Откуда взять звук</string>
+    <string name="src_downloads">Загрузки</string>
+    <string name="src_files">Память телефона</string>
+    <string name="src_music">Музыка на телефоне</string>
+    <string name="src_apps">Другие приложения (Диск, Telegram…)</string>
 </resources>
