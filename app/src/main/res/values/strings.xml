@@ -12,4 +12,13 @@
     <string name="u_mo">mo</string>
     <string name="u_d">d</string>
     <string name="pick_sound">Choose a sound</string>
+    <string name="save_sound_to">Save the sound as</string>
+    <string name="slot_1">My sound 1</string>
+    <string name="slot_2">My sound 2</string>
+    <string name="slot_3">My sound 3</string>
+    <string name="pick_source">Where to take the sound from</string>
+    <string name="src_downloads">Downloads</string>
+    <string name="src_files">Phone storage</string>
+    <string name="src_music">Music on the phone</string>
+    <string name="src_apps">Other apps (Drive, Telegram…)</string>
 </resources>
