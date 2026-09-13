@@ -11,4 +11,5 @@
     <string name="u_y">yr</string>
     <string name="u_mo">mo</string>
     <string name="u_d">d</string>
+    <string name="pick_sound">Choose a sound</string>
 </resources>
