@@ -17,6 +17,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -235,6 +236,14 @@ public class MainActivity extends Activity {
         }).start();
     }
 
+    /** Блокировка затухания экрана на время работы секундомера. */
+    void setKeepAwake(boolean on) {
+        try {
+            if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } catch (Exception ignored) { }
+    }
+
     /** Копия выбранного файла в личную папку приложения. Возвращает file:// ссылку или null. */
     private String copyToLocal(Uri uri, String slot) {
         File dir = new File(getFilesDir(), "sounds");
@@ -315,7 +324,13 @@ public class MainActivity extends Activity {
 
         /** Версия моста: страница может проверить, что умеет установленный APK. */
         @JavascriptInterface
-        public int bridgeVersion() { return 3; }
+        public int bridgeVersion() { return 4; }
+
+        /** Пока секундомер идёт, экран не гаснет. */
+        @JavascriptInterface
+        public void keepAwake(final boolean on) {
+            activity.runOnUiThread(() -> activity.setKeepAwake(on));
+        }
 
         @JavascriptInterface
         public void startCountdown(String targetMs, String title, boolean shade, boolean sound) {
