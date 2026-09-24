@@ -4,6 +4,7 @@
 
     <!-- Интерфейс грузится с GitHub Pages; офлайн держит service worker -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Постоянное уведомление-отсчёт в шторке -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
