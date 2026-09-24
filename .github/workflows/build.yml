@@ -31,6 +31,14 @@ jobs:
             git push
           fi
 
+      - name: Копия страницы в пакет (офлайн-запуск)
+        run: |
+          mkdir -p app/src/main/assets
+          cp index.html      app/src/main/assets/app.html
+          cp manifest.json   app/src/main/assets/manifest.json
+          cp favicon.png     app/src/main/assets/favicon.png
+          cp icon-192.png    app/src/main/assets/icon-192.png
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
