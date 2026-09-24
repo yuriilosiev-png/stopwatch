@@ -9,6 +9,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.database.Cursor;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
@@ -20,6 +22,7 @@ import android.os.Bundle;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -63,7 +66,7 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setAllowFileAccess(false);           // assets при этом остаются доступны
+        s.setAllowFileAccess(true);            // нужно для file:///android_asset на Android 11+
         s.setAllowContentAccess(false);
 
         web.setWebViewClient(new WebViewClient() {
@@ -76,7 +79,32 @@ public class MainActivity extends Activity {
                 return true;
             }
 
-            /** Сети нет и в кэше пусто — показываем заглушку из пакета. */
+            /**
+             * Офлайн отдаём копию страницы, вшитую в пакет, прямо по адресу сайта.
+             * Адрес сохраняется, поэтому настройки и фазы из localStorage остаются
+             * теми же, что и при работе с сетью.
+             */
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                Uri u = (req == null) ? null : req.getUrl();
+                if (u == null || !APP_HOST.equals(u.getHost())) return null;
+                if (isOnline()) return null;
+
+                String name = u.getLastPathSegment();
+                if (name == null || name.isEmpty() || "index.html".equals(name)) name = "app.html";
+
+                String mime = name.endsWith(".json") ? "application/json"
+                            : name.endsWith(".png")  ? "image/png"
+                            : name.endsWith(".js")   ? "application/javascript"
+                            : "text/html";
+                try {
+                    return new WebResourceResponse(mime, "UTF-8", getAssets().open(name));
+                } catch (Exception e) {
+                    return null;    // такого файла в пакете нет — пусть решает WebView
+                }
+            }
+
+            /** Сети нет и копии в пакете не нашлось — показываем заглушку. */
             @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
                 if (req != null && req.isForMainFrame()) {
@@ -234,6 +262,18 @@ public class MainActivity extends Activity {
                         "window.onCustomSoundsChanged && window.onCustomSoundsChanged();", null));
             });
         }).start();
+    }
+
+    /** Есть ли сейчас работающее соединение. */
+    private boolean isOnline() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            if (cm == null) return true;
+            NetworkCapabilities nc = cm.getNetworkCapabilities(cm.getActiveNetwork());
+            return nc != null && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } catch (Exception e) {
+            return true;       // не смогли определить — ведём себя как при сети
+        }
     }
 
     /** Блокировка затухания экрана на время работы секундомера. */
