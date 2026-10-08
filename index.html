@@ -1458,6 +1458,7 @@
   const RING_LEN = 2 * Math.PI * 96;     // длина окружности кольца, r = 96
 
   let tInterval = null, tCurPhase = 0, tCurCycle = 1, tTotalCycles = 3, tRemain = 0, tWarned = false, tWarn = true;
+  let tPhaseEnd = 0;     // момент конца текущей фазы по системным часам
 
   function fmtSec(s) {
     const m = Math.floor(s / 60), sec = s % 60;
@@ -1498,6 +1499,7 @@
   function startPhase() {
     const p = phases[tCurPhase];
     tRemain = p.min * 60 + p.sec;
+    tPhaseEnd = Date.now() + tRemain * 1000;
     tWarned = false;
     if (tRemain <= 0) { nextPhase(); return; }
     playSound(p.sound); // сигнал в начале фазы
@@ -1515,11 +1517,22 @@
   }
 
   function timerTick() {
-    tRemain--;
-    if (tWarn && !tWarned && tRemain === 10) { tWarned = true; warnBeep(); }
+    // считаем от системных часов, а не от числа срабатываний таймера:
+    // в фоне интервал тормозят, и счёт уехал бы
+    tRemain = Math.round((tPhaseEnd - Date.now()) / 1000);
+    if (tWarn && !tWarned && tRemain <= 10 && tRemain > 0) { tWarned = true; warnBeep(); }
     if (tRemain <= 0) { nextPhase(); return; }
     showPhase();
   }
+
+  /* Возврат из фона: браузер мог заморозить интервал, пока экран был выключен.
+     Проматываем пропущенные фазы, чтобы на табло было реальное время. */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !tInterval) return;
+    let guard = 0;
+    while (Date.now() >= tPhaseEnd && tInterval && guard++ < 500) nextPhase();
+    if (tInterval) { tRemain = Math.round((tPhaseEnd - Date.now()) / 1000); showPhase(); }
+  });
 
   function finishTimer() {
     clearInterval(tInterval); tInterval = null;
@@ -1538,12 +1551,14 @@
     tWarn = document.getElementById('warnToggle').checked;
     tCurPhase = 0; tCurCycle = 1;
     setupBtns.classList.add('hidden'); runBtns.classList.remove('hidden');
+    keepAwake(true); wakeAcquire();
     startPhase();
     tInterval = setInterval(timerTick, 1000);
   }
 
   function stopTimer() {
     if (tInterval) { clearInterval(tInterval); tInterval = null; stopCue(); }
+    keepAwake(false); wakeRelease();
     runBtns.classList.add('hidden'); setupBtns.classList.remove('hidden');
     showIdle();
   }
