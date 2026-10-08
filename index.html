@@ -455,6 +455,7 @@
     background: var(--dim); color: var(--fg);
   }
   .modal-btns button.primary { background: var(--accent); color: #0a0a0f; }
+  .rate-text { font-size: 15px; line-height: 1.5; color: var(--muted); text-align: center; }
 
   .cd-shade-status { font-size: 12px; color: var(--muted); text-align: center; max-width: 420px; line-height: 1.4; }
   .cd-shade-status.bad { color: var(--stop); }
@@ -651,6 +652,18 @@
     </div>
   </div>
 
+  <!-- Просьба оценить приложение -->
+  <div class="modal hidden" id="rateModal">
+    <div class="modal-card">
+      <div class="modal-title" data-i18n="rate.title">Оставьте отзыв</div>
+      <div class="rate-text" data-i18n="rate.text">Если приложение пригодилось — оцените его в Google Play. Отзыв помогает другим его найти, а мне — понять, что улучшить.</div>
+      <div class="modal-btns">
+        <button type="button" id="rateLater" data-i18n="rate.later">Позже</button>
+        <button type="button" id="rateGo" class="primary" data-i18n="rate.btn">Оценить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Баннер обновления -->
   <div class="update-banner hidden" id="updateBanner">
     <span data-i18n="upd.text">Доступно обновление</span>
@@ -663,6 +676,10 @@
     ru: {
       'app.title': 'Секундомер',
       'tab.sw': 'Секундомер', 'tab.cd': 'Отсчёт', 'tab.rounds': 'Раунды',
+      'rate.title': 'Оставьте отзыв',
+      'rate.text': 'Если приложение пригодилось — оцените его в Google Play. Отзыв помогает другим его найти, а мне — понять, что улучшить.',
+      'rate.btn': 'Оценить',
+      'rate.later': 'Позже',
       'btn.start': 'Старт', 'btn.stop': 'Стоп', 'btn.reset': 'Сброс',
       'btn.pause': 'Пауза', 'btn.resume': 'Продолжить', 'btn.stopAlarm': 'Выключить сигнал',
       'cd.head': 'Дата и время события',
@@ -724,6 +741,10 @@
     en: {
       'app.title': 'Stopwatch',
       'tab.sw': 'Stopwatch', 'tab.cd': 'Reverse', 'tab.rounds': 'Rounds',
+      'rate.title': 'Leave a review',
+      'rate.text': 'If the app has been useful, please rate it on Google Play. A review helps others find it and helps me see what to improve.',
+      'rate.btn': 'Rate',
+      'rate.later': 'Later',
       'btn.start': 'Start', 'btn.stop': 'Stop', 'btn.reset': 'Reset',
       'btn.pause': 'Pause', 'btn.resume': 'Resume', 'btn.stopAlarm': 'Stop alarm',
       'cd.head': 'Event date and time',
@@ -1954,6 +1975,72 @@
       });
     });
   }
+
+  /* ============ ПРОСЬБА ОЦЕНИТЬ В GOOGLE PLAY ============
+     Открытие засчитывается не чаще раза в полчаса, иначе переключение
+     туда-сюда накрутило бы счётчик за минуту. Спрашиваем дважды: на 3-м
+     и на 10-м открытии, после второго раза больше не возвращаемся.
+     Правила Play: не фильтруем по «нравится ли», ничего не обещаем за
+     отзыв — одна нейтральная просьба. Счётчик в отдельном ключе
+     localStorage. В браузере и на старых APK без openStore окна нет. */
+  const RATE_KEY   = 'sw.rate';
+  const RATE_FIRST = 3;
+  const RATE_AGAIN = 10;
+  const RATE_GAP   = 30 * 60 * 1000;
+
+  function rateCanOpenStore() {
+    try { return !!(window.Android && typeof window.Android.openStore === 'function'); }
+    catch (e) { return false; }
+  }
+  function rateLoad() {
+    const d = { opens: 0, asks: 0, done: false, last: 0 };
+    try { return Object.assign(d, JSON.parse(localStorage.getItem(RATE_KEY) || 'null') || {}); }
+    catch (e) { return d; }
+  }
+  function rateSave(r) {
+    try { localStorage.setItem(RATE_KEY, JSON.stringify(r)); } catch (e) {}
+  }
+
+  function rateCountOpen() {
+    if (!rateCanOpenStore()) return;
+    const r = rateLoad();
+    if (r.done) return;
+    const now = Date.now();
+    if (r.last && now - r.last < RATE_GAP) return;
+    r.opens++; r.last = now;
+    rateSave(r);
+    const due = (r.asks === 0 && r.opens >= RATE_FIRST) ||
+                (r.asks === 1 && r.opens >= RATE_AGAIN);
+    if (due) setTimeout(rateAsk, 1500);
+  }
+
+  function rateAsk() {
+    if (document.hidden) return;
+    // идёт тренировка или открыто другое окно — не перебиваем,
+    // спросим на следующем открытии: счётчик уже дорос до порога
+    if (tInterval || swRunning || CD.running) return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    const r = rateLoad();
+    if (r.done) return;
+    r.asks++;
+    if (r.asks >= 2) r.done = true;
+    rateSave(r);
+    document.getElementById('rateModal').classList.remove('hidden');
+  }
+
+  document.getElementById('rateLater').addEventListener('click', () => {
+    document.getElementById('rateModal').classList.add('hidden');
+  });
+  document.getElementById('rateGo').addEventListener('click', () => {
+    const r = rateLoad(); r.done = true; rateSave(r);
+    document.getElementById('rateModal').classList.add('hidden');
+    try { window.Android.openStore(); } catch (e) {}
+  });
+
+  rateCountOpen();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) rateCountOpen();
+  });
 
   function showUpdateBanner(worker) {
     const banner = document.getElementById('updateBanner');
