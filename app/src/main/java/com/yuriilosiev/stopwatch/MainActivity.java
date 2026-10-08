@@ -276,6 +276,24 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Страница приложения в Play; без Play — та же страница в браузере. */
+    void doOpenStore() {
+        final String id = getPackageName();
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + id));
+            i.setPackage("com.android.vending");   // сразу в Play, без выбора приложения
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent w = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=" + id));
+                w.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(w);
+            } catch (Exception ignored) { }
+        }
+    }
+
     /** Блокировка затухания экрана на время работы секундомера. */
     void setKeepAwake(boolean on) {
         try {
@@ -364,7 +382,13 @@ public class MainActivity extends Activity {
 
         /** Версия моста: страница может проверить, что умеет установленный APK. */
         @JavascriptInterface
-        public int bridgeVersion() { return 4; }
+        public int bridgeVersion() { return 5; }
+
+        /** Открыть страницу приложения в Google Play (просьба оценить). */
+        @JavascriptInterface
+        public void openStore() {
+            activity.runOnUiThread(() -> activity.doOpenStore());
+        }
 
         /** Пока секундомер идёт, экран не гаснет. */
         @JavascriptInterface
