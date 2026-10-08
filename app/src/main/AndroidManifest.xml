@@ -82,6 +82,16 @@
                 android:value="countdown_timer_notification" />
         </service>
 
+        <!-- Таймер раундов: сигналы фаз при выключенном экране -->
+        <service
+            android:name=".RoundsService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="round_timer_signals" />
+        </service>
+
         <!-- Сигнал по достижении нуля (30 секунд) -->
         <service
             android:name=".AlarmService"
