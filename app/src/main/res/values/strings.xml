@@ -21,4 +21,6 @@
     <string name="src_files">Phone storage</string>
     <string name="src_music">Music on the phone</string>
     <string name="src_apps">Other apps (Drive, Telegram…)</string>
+    <string name="ch_rounds">Round timer</string>
+    <string name="ch_rounds_desc">Phase signals while the screen is off</string>
 </resources>
