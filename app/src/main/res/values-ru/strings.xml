@@ -21,4 +21,6 @@
     <string name="src_files">Память телефона</string>
     <string name="src_music">Музыка на телефоне</string>
     <string name="src_apps">Другие приложения (Диск, Telegram…)</string>
+    <string name="ch_rounds">Таймер раундов</string>
+    <string name="ch_rounds_desc">Сигналы фаз при выключенном экране</string>
 </resources>
