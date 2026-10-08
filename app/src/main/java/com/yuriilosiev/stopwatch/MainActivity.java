@@ -382,7 +382,25 @@ public class MainActivity extends Activity {
 
         /** Версия моста: страница может проверить, что умеет установленный APK. */
         @JavascriptInterface
-        public int bridgeVersion() { return 5; }
+        public int bridgeVersion() { return 6; }
+
+        /** Передать расписание раундов нативной части: она доиграет его при спящем экране. */
+        @JavascriptInterface
+        public void startRounds(String phasesJson, int cycles, boolean warn,
+                                String warnSound, int volume) {
+            RoundsService.start(ctx, phasesJson, cycles, warn, warnSound, volume);
+        }
+
+        @JavascriptInterface
+        public void stopRounds() {
+            RoundsService.stop(ctx);
+        }
+
+        /** Где сейчас таймер: фаза, цикл и момент конца фазы. */
+        @JavascriptInterface
+        public String roundsState() {
+            return RoundsService.stateJson();
+        }
 
         /** Открыть страницу приложения в Google Play (просьба оценить). */
         @JavascriptInterface
