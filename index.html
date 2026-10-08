@@ -1264,11 +1264,23 @@
      нужна каждый раз одна и та же, набирать её заново при каждом запуске незачем. */
   const RND_KEY = 'sw.rounds';
 
+  /** Прежнее сохранённое число циклов — на случай, если поле сейчас пустое. */
+  function storedCycles() {
+    try {
+      const o = JSON.parse(localStorage.getItem(RND_KEY) || 'null') || {};
+      const n = parseInt(o.cycles, 10);
+      return (n >= 1 && n <= 99) ? n : 3;
+    } catch (e) { return 3; }
+  }
+
   function saveRounds() {
     try {
+      // поле пустое или на полпути ввода — не затираем прежнее число
+      let c = parseInt(document.getElementById('cycles').value, 10);
+      if (!(c >= 1 && c <= 99)) c = storedCycles();
       localStorage.setItem(RND_KEY, JSON.stringify({
         phases: phases,
-        cycles: document.getElementById('cycles').value,
+        cycles: c,
         warn:   document.getElementById('warnToggle').checked
       }));
     } catch (e) { }
@@ -1341,16 +1353,20 @@
       phaseList.appendChild(row);
     });
 
-    // обработчики ввода
+    // Обработчики ввода. Слушаем и input, и change: change у полей приходит
+    // только после потери фокуса, а если человек ввёл время и сразу закрыл
+    // приложение, фокус не теряется — настройка пропадала.
     phaseList.querySelectorAll('input.name, select.sound, .dur-box input').forEach(el => {
-      el.addEventListener('change', e => {
+      const onEdit = e => {
         const i = +e.target.dataset.i, f = e.target.dataset.f;
         if (f === 'name') { phases[i].name = e.target.value; phases[i].key = null; }
         else if (f === 'sound') phases[i].sound = e.target.value;
         else phases[i][f] = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
         saveRounds();
         if (!tInterval) showIdle();
-      });
+      };
+      el.addEventListener('input', onEdit);
+      el.addEventListener('change', onEdit);
     });
     phaseList.querySelectorAll('.del').forEach(b => {
       b.addEventListener('click', e => {
@@ -1371,11 +1387,19 @@
   });
 
   // число циклов и предупреждение сохраняются так же, как фазы
-  document.getElementById('cycles').addEventListener('change', () => {
-    saveRounds();
-    if (!tInterval) showIdle();
-  });
+  (function () {
+    const cyc = document.getElementById('cycles');
+    const onEdit = () => { saveRounds(); if (!tInterval) showIdle(); };
+    cyc.addEventListener('input', onEdit);
+    cyc.addEventListener('change', onEdit);
+  })();
   document.getElementById('warnToggle').addEventListener('change', saveRounds);
+
+  /* Страховка: сохраняем настройку и когда приложение уходит в фон или
+     закрывается. Если человек смахнул приложение из списка задач сразу после
+     ввода, событий полей может не быть вовсе. */
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveRounds(); });
+  window.addEventListener('pagehide', saveRounds);
 
   /* --- свои звуки и громкость сигнала --- */
   const customBox = document.getElementById('customBox');
@@ -1573,9 +1597,12 @@
   }
 
   function startTimer() {
+    // все фазы по нулям — отсчитывать нечего, иначе таймер пролетит циклы мгновенно
+    if (phases.reduce((s, p) => s + phaseLen(p), 0) <= 0) return;
     ac();
     tTotalCycles = Math.max(1, parseInt(document.getElementById('cycles').value) || 1);
     tWarn = document.getElementById('warnToggle').checked;
+    saveRounds();            // запуск закрепляет то, что человек только что ввёл
     tCurPhase = 0; tCurCycle = 1;
     setupBtns.classList.add('hidden'); runBtns.classList.remove('hidden');
 
@@ -2250,6 +2277,25 @@
     try { return !!(window.Android && typeof window.Android.openStore === 'function'); }
     catch (e) { return false; }
   }
+
+  /* Переход на страницу приложения в Play.
+     Три пути, от лучшего к худшему:
+     1) мост openStore — сразу в приложение Play (APK от 8 октября и новее);
+     2) обычный переход по адресу — WebView старых сборок отдаёт внешние
+        ссылки системе, и адрес перехватывает Play. Так работает на телефонах,
+        где стоит вчерашний APK без openStore;
+     3) браузер — открываем в новой вкладке, страница приложения остаётся. */
+  const STORE_URL = 'https://play.google.com/store/apps/details?id=com.yuriilosiev.stopwatch';
+
+  function goStore() {
+    if (rateCanOpenStore()) {
+      try { window.Android.openStore(); return; } catch (e) {}
+    }
+    if (window.Android) {
+      try { window.location.href = STORE_URL; return; } catch (e) {}
+    }
+    try { window.open(STORE_URL, '_blank', 'noopener'); } catch (e) {}
+  }
   function rateLoad() {
     const d = { opens: 0, asks: 0, done: false, last: 0 };
     try { return Object.assign(d, JSON.parse(localStorage.getItem(RATE_KEY) || 'null') || {}); }
@@ -2292,7 +2338,7 @@
   document.getElementById('rateGo').addEventListener('click', () => {
     const r = rateLoad(); r.done = true; rateSave(r);
     document.getElementById('rateModal').classList.add('hidden');
-    try { window.Android.openStore(); } catch (e) {}
+    goStore();
   });
 
   rateCountOpen();
@@ -2303,9 +2349,9 @@
   /* Баннер «Доступно обновление».
      Страница обновляется сама (HTML берётся из сети), а оболочка приложения —
      только из магазина. Поэтому по нажатию делаем оба шага: отпускаем новый
-     воркер (кэш и офлайн-копия станут свежими) и уводим в магазин, где видно,
-     есть ли новая версия приложения. В браузере магазина нет — там просто
-     перезагружаем страницу. */
+     воркер (кэш и офлайн-копия станут свежими) и уводим в Play — там видно,
+     есть ли новая версия приложения. В приложении переход идёт через goStore,
+     он работает и на старых APK без моста openStore. */
   function showUpdateBanner(worker) {
     const banner = document.getElementById('updateBanner');
     if (!banner) return;
@@ -2316,12 +2362,10 @@
 
       try { if (worker) worker.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
 
-      if (rateCanOpenStore()) {
-        try { window.Android.openStore(); return; } catch (e) {}
-      }
+      if (window.Android) { goStore(); return; }
 
-      // резерв: если воркер не перехватил управление, перезагружаемся сами
-      setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 1500);
+      // браузер: магазин ни при чём, просто подхватываем свежую страницу
+      setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 1200);
     };
   }
 </script>
