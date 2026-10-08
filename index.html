@@ -1459,6 +1459,21 @@
 
   let tInterval = null, tCurPhase = 0, tCurCycle = 1, tTotalCycles = 3, tRemain = 0, tWarned = false, tWarn = true;
   let tPhaseEnd = 0;     // момент конца текущей фазы по системным часам
+  let tNative = false;   // расписание ведёт нативная часть, звуки играет она
+
+  /* Нативный таймер раундов появился в мосте версии 6. Он доигрывает фазы
+     при выключенном экране, поэтому интерфейс в этом режиме только показывает. */
+  function roundsBridge() {
+    try {
+      return !!(window.Android && typeof window.Android.startRounds === 'function'
+                && parseInt(window.Android.bridgeVersion(), 10) >= 6);
+    } catch (e) { return false; }
+  }
+  function phasesPayload() {
+    return JSON.stringify(phases.map(p => ({
+      n: phaseName(p), d: phaseLen(p), s: p.sound || 'none'
+    })));
+  }
 
   function fmtSec(s) {
     const m = Math.floor(s / 60), sec = s % 60;
@@ -1502,7 +1517,7 @@
     tPhaseEnd = Date.now() + tRemain * 1000;
     tWarned = false;
     if (tRemain <= 0) { nextPhase(); return; }
-    playSound(p.sound); // сигнал в начале фазы
+    if (!tNative) playSound(p.sound);   // в нативном режиме сигнал даёт сервис
     showPhase();
   }
 
@@ -1520,7 +1535,7 @@
     // считаем от системных часов, а не от числа срабатываний таймера:
     // в фоне интервал тормозят, и счёт уехал бы
     tRemain = Math.round((tPhaseEnd - Date.now()) / 1000);
-    if (tWarn && !tWarned && tRemain <= 10 && tRemain > 0) { tWarned = true; warnBeep(); }
+    if (tWarn && !tWarned && tRemain <= 10 && tRemain > 0) { tWarned = true; if (!tNative) warnBeep(); }
     if (tRemain <= 0) { nextPhase(); return; }
     showPhase();
   }
@@ -1529,6 +1544,18 @@
      Проматываем пропущенные фазы, чтобы на табло было реальное время. */
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || !tInterval) return;
+
+    if (tNative) {
+      // сервис вёл отсчёт, пока экран спал — берём состояние у него
+      let st = null;
+      try { st = JSON.parse(window.Android.roundsState() || 'null'); } catch (e) {}
+      if (!st || !st.running) { stopTimer(); return; }
+      tCurPhase = st.phase; tCurCycle = st.cycle; tPhaseEnd = st.end;
+      tRemain = Math.round((tPhaseEnd - Date.now()) / 1000);
+      showPhase();
+      return;
+    }
+
     let guard = 0;
     while (Date.now() >= tPhaseEnd && tInterval && guard++ < 500) nextPhase();
     if (tInterval) { tRemain = Math.round((tPhaseEnd - Date.now()) / 1000); showPhase(); }
@@ -1536,7 +1563,7 @@
 
   function finishTimer() {
     clearInterval(tInterval); tInterval = null;
-    playSound('gong');
+    if (!tNative) playSound('gong');
     rPhase.textContent = t('t.ready').toUpperCase();
     rCount.textContent = '00:00';
     rNext.textContent = t('t.finished');
@@ -1551,13 +1578,24 @@
     tWarn = document.getElementById('warnToggle').checked;
     tCurPhase = 0; tCurCycle = 1;
     setupBtns.classList.add('hidden'); runBtns.classList.remove('hidden');
-    keepAwake(true); wakeAcquire();
+
+    tNative = roundsBridge();
+    if (tNative) {
+      // сервис сам доиграет расписание, даже когда экран погаснет
+      try {
+        window.Android.startRounds(phasesPayload(), tTotalCycles, tWarn, warnSnd, cueVol);
+      } catch (e) { tNative = false; }
+    }
+    // без нативной части единственная защита — не давать экрану уснуть
+    if (!tNative) { keepAwake(true); wakeAcquire(); }
+
     startPhase();
     tInterval = setInterval(timerTick, 1000);
   }
 
   function stopTimer() {
     if (tInterval) { clearInterval(tInterval); tInterval = null; stopCue(); }
+    if (tNative) { try { window.Android.stopRounds(); } catch (e) {} tNative = false; }
     keepAwake(false); wakeRelease();
     runBtns.classList.add('hidden'); setupBtns.classList.remove('hidden');
     showIdle();
