@@ -1,5 +1,5 @@
 // Версия подставляется автоматически из хеша index.html (GitHub Actions).
-const CACHE = 'stopwatch-5724396e';
+const CACHE = 'stopwatch-8e210ed2';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,8 @@ const ASSETS = [
   './icon-512.png',
   './icon-192-maskable.png',
   './icon-512-maskable.png',
-  './favicon.png'
+  './favicon.png',
+  './hero-rounds.jpg'
 ];
 
 self.addEventListener('install', (e) => {
