@@ -2187,7 +2187,8 @@
     renderUnits();
     if (!cdHint.classList.contains('err')) cdHint.textContent = t('cd.hint');
     if (CD.running) cdRender();
-    if (tInterval) showPhase();
+    // текст внутри кольца пишет JS, атрибутами его не покрыть
+    if (tInterval) showPhase(); else showIdle();
     renderShadeStatus();
   }
 
@@ -2299,12 +2300,28 @@
     if (!document.hidden) rateCountOpen();
   });
 
+  /* Баннер «Доступно обновление».
+     Страница обновляется сама (HTML берётся из сети), а оболочка приложения —
+     только из магазина. Поэтому по нажатию делаем оба шага: отпускаем новый
+     воркер (кэш и офлайн-копия станут свежими) и уводим в магазин, где видно,
+     есть ли новая версия приложения. В браузере магазина нет — там просто
+     перезагружаем страницу. */
   function showUpdateBanner(worker) {
     const banner = document.getElementById('updateBanner');
+    if (!banner) return;
     banner.classList.remove('hidden');
+
     document.getElementById('updateBtn').onclick = () => {
-      worker.postMessage({ type: 'SKIP_WAITING' });
       banner.classList.add('hidden');
+
+      try { if (worker) worker.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+
+      if (rateCanOpenStore()) {
+        try { window.Android.openStore(); return; } catch (e) {}
+      }
+
+      // резерв: если воркер не перехватил управление, перезагружаемся сами
+      setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 1500);
     };
   }
 </script>
