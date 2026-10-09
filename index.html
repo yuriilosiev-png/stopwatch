@@ -1426,13 +1426,16 @@
     });
   }
 
-  customBox.querySelectorAll('[data-cs-pick]').forEach(b => {
+  /* Слоты своих звуков лежат в окне sndModal, а оно — сосед customBox,
+     не его потомок. Поэтому ищем кнопки по всей странице: иначе список
+     пустой и «Выбрать» ни на что не отвечает. */
+  document.querySelectorAll('[data-cs-pick]').forEach(b => {
     b.addEventListener('click', () => {
       try { window.Android.pickSound(b.dataset.csPick); } catch (e) {}
     });
   });
-  customBox.querySelectorAll('[data-cs-play]').forEach(b => {
-    b.addEventListener('click', () => { playSound('custom' + b.dataset.csPlay); });
+  document.querySelectorAll('[data-cs-play]').forEach(b => {
+    b.addEventListener('click', () => { ac(); playSound('custom' + b.dataset.csPlay); });
   });
 
   // нативная часть зовёт это после выбора файла
