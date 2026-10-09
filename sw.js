@@ -1,5 +1,5 @@
 // Версия подставляется автоматически из хеша index.html (GitHub Actions).
-const CACHE = 'stopwatch-e5c6325d';
+const CACHE = 'stopwatch-69374a38';
 const ASSETS = [
   './',
   './index.html',
