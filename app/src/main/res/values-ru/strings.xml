@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Секундомер</string>
+    <string name="app_name">Раундтрек</string>
     <string name="cd_event">Событие</string>
     <string name="cd_done">Время вышло</string>
     <string name="btn_stop_alarm">Выключить сигнал</string>
