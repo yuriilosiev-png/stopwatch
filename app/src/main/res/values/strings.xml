@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Stopwatch</string>
+    <string name="app_name">RoundTrack</string>
     <string name="cd_event">Event</string>
     <string name="cd_done">Time is up</string>
     <string name="btn_stop_alarm">Stop alarm</string>
