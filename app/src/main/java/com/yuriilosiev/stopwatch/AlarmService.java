@@ -129,7 +129,7 @@ public class AlarmService extends Service {
 
         b.setContentTitle(title)
                 .setContentText(getString(R.string.cd_done))
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setSmallIcon(R.drawable.ic_notif)
                 .setContentIntent(open)
                 .setAutoCancel(false)
                 .setOngoing(true)
