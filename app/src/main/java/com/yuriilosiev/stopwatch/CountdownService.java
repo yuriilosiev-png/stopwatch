@@ -120,7 +120,7 @@ public class CountdownService extends Service {
 
         b.setContentTitle(title)
                 .setContentText(body)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setSmallIcon(R.drawable.ic_notif)
                 .setContentIntent(open)
                 .setOngoing(true)
                 .setShowWhen(false)
