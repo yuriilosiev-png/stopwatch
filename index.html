@@ -560,6 +560,14 @@
     background: var(--dim); color: var(--fg);
   }
   .modal-btns button.primary { background: var(--accent); color: #0a0a0f; }
+  .lang-list { display: flex; flex-direction: column; gap: 8px; }
+  .lang-list button {
+    background: var(--dim); border: 1px solid var(--border); color: var(--fg);
+    border-radius: 12px; padding: 13px 14px; font-size: 16px; font-family: inherit;
+    text-align: left; cursor: pointer;
+  }
+  .lang-list button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
   .rate-text { font-size: 15px; line-height: 1.5; color: var(--muted); text-align: center; }
 
   .cd-shade-status { font-size: 12px; color: var(--muted); text-align: center; max-width: 420px; line-height: 1.4; }
@@ -819,6 +827,17 @@
     </div>
   </div>
 
+  <!-- Выбор языка -->
+  <div class="modal hidden" id="langModal">
+    <div class="modal-card">
+      <div class="modal-title" data-i18n="lang.title">Язык</div>
+      <div class="lang-list" id="langList"></div>
+      <div class="modal-btns">
+        <button type="button" id="langClose" class="primary" data-i18n="btn.cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Баннер обновления -->
   <div class="update-banner hidden" id="updateBanner">
     <span data-i18n="upd.text">Доступно обновление</span>
@@ -830,6 +849,7 @@
   const I18N = {
     ru: {
       'app.title': 'Секундомер',
+      'lang.title': 'Язык',
       'tab.sw': 'Секундомер', 'tab.cd': 'Отсчёт', 'tab.rounds': 'Раунды',
       't.pickSound': 'Выбрать звук',
       'rate.title': 'Оставьте отзыв',
@@ -896,6 +916,7 @@
     },
     en: {
       'app.title': 'Stopwatch',
+      'lang.title': 'Language',
       'tab.sw': 'Stopwatch', 'tab.cd': 'Reverse', 'tab.rounds': 'Rounds',
       't.pickSound': 'Choose a sound',
       'rate.title': 'Leave a review',
@@ -959,20 +980,440 @@
       'shade.chanOff': 'The "Countdown in shade" channel is turned off in notification settings',
       'shade.notPassed': 'The countdown was not handed over to the native part',
       'shade.killed': 'The shade service was stopped by the system'
+    },
+    es: {
+      'lang.title': 'Idioma',
+      'app.title': 'Cronómetro',
+      'tab.sw': 'Cronómetro',
+      'tab.cd': 'Cuenta atrás',
+      'tab.rounds': 'Rondas',
+      't.pickSound': 'Elegir un sonido',
+      'rate.title': 'Deja una reseña',
+      'rate.text': 'Si la app te ha sido útil, valórala en Google Play. Una reseña ayuda a otros a encontrarla y a mí a saber qué mejorar.',
+      'rate.btn': 'Valorar',
+      'rate.later': 'Más tarde',
+      'btn.start': 'Iniciar',
+      'btn.stop': 'Parar',
+      'btn.reset': 'Reiniciar',
+      'btn.pause': 'Pausa',
+      'btn.resume': 'Continuar',
+      'btn.stopAlarm': 'Apagar la alarma',
+      'cd.head': 'Fecha y hora del evento',
+      'cd.namePh': 'Nombre del evento',
+      'cd.opts': 'Opciones',
+      'cd.shade': 'Mostrar en la barra de notificaciones',
+      'cd.sound': 'Alarma al terminar (30 s)',
+      'cd.timer': 'Temporizador',
+      'cd.through': 'En ',
+      'cd.endsAt': ', a las ',
+      'cd.errZero': 'Elige en cuánto tiempo o indica una fecha',
+      'cd.pickDate': 'Elegir la fecha del evento',
+      'cd.clear': 'Borrar',
+      'btn.cancel': 'Cancelar',
+      'btn.done': 'Listo',
+      'un.s': 'segundos',
+      'un.mi': 'minutos',
+      'un.h': 'horas',
+      'un.d': 'días',
+      'un.w': 'semanas',
+      'un.mo': 'meses',
+      'un.y': 'años',
+      'ask.s': '¿Cuántos segundos?',
+      'ask.mi': '¿Cuántos minutos?',
+      'ask.h': '¿Cuántas horas?',
+      'ask.d': '¿Cuántos días?',
+      'ask.w': '¿Cuántas semanas?',
+      'ask.mo': '¿Cuántos meses?',
+      'ask.y': '¿Cuántos años?',
+      'cd.hint': 'La cuenta atrás usa el reloj del sistema: sigue funcionando con la app minimizada o tras reiniciar. La barra de notificaciones y la alarma con la pantalla bloqueada requieren la app instalada.',
+      'cd.errEmpty': 'Indica la fecha y la hora del evento',
+      'cd.errPast': 'La hora elegida ya ha pasado',
+      'cd.until': 'Tiempo restante',
+      'cd.done': 'Se acabó el tiempo',
+      'cd.paused': 'En pausa',
+      'cd.at': 'Evento: ',
+      'cd.noName': 'Evento',
+      'u.y': 'a',
+      'u.mo': 'mes',
+      'u.w': 'sem',
+      'u.d': 'd',
+      'u.h': 'h',
+      'u.min': 'min',
+      'u.sec': 's',
+      'p.min1': '+1 min',
+      'p.min5': '+5 min',
+      'p.min15': '+15 min',
+      'p.h1': '+1 hora',
+      'p.d1': '+1 día',
+      'p.w1': '+1 semana',
+      'p.mo1': '+1 mes',
+      'p.y1': '+1 año',
+      't.phases': 'Fases (en bucle)',
+      't.addPhase': '+ Añadir fase',
+      't.params': 'Opciones',
+      't.cycles': 'Número de ciclos (rondas)',
+      't.warn': 'Aviso 10 s antes del final',
+      't.round': 'Round',
+      't.rest': 'Descanso',
+      't.phaseN': 'Fase ',
+      't.cycleOf': 'Ciclo {a} de {b}',
+      't.ready': 'LISTO',
+      't.finished': 'Entrenamiento terminado',
+      'snd.none': 'Sin sonido',
+      'snd.beep': 'Pitido',
+      'snd.whistle': 'Silbato',
+      'snd.gong': 'Gong',
+      'snd.bell': 'Campana',
+      't.cueVol': 'Volumen de la señal',
+      't.warnSnd': 'Sonido de aviso',
+      'snd.warn': 'Golpe de martillo',
+      't.customSounds': 'Sonidos propios',
+      't.custom': 'Sonido propio {n}',
+      't.pick': 'Elegir',
+      't.notSet': 'sin archivo',
+      'upd.text': 'Actualización disponible',
+      'upd.btn': 'Actualizar',
+      'shade.noApp': 'La barra de notificaciones solo funciona en la app instalada',
+      'shade.bridge': 'Error del puente: {e}',
+      'shade.oldApk': 'APK obsoleto: diagnóstico no disponible',
+      'shade.svcErr': 'Fallo del servicio: {e}',
+      'shade.notifOff': 'Las notificaciones de esta app están bloqueadas en el sistema',
+      'shade.chanOff': 'El canal «Cuenta atrás en la barra» está desactivado en los ajustes de notificaciones',
+      'shade.notPassed': 'La cuenta atrás no se transfirió a la parte nativa',
+      'shade.killed': 'El sistema detuvo el servicio de la barra'
+    },
+    pt: {
+      'lang.title': 'Idioma',
+      'app.title': 'Cronômetro',
+      'tab.sw': 'Cronômetro',
+      'tab.cd': 'Contagem',
+      'tab.rounds': 'Rounds',
+      't.pickSound': 'Escolher um som',
+      'rate.title': 'Deixe uma avaliação',
+      'rate.text': 'Se o app foi útil, avalie na Google Play. Uma avaliação ajuda outras pessoas a encontrá-lo e me mostra o que melhorar.',
+      'rate.btn': 'Avaliar',
+      'rate.later': 'Depois',
+      'btn.start': 'Iniciar',
+      'btn.stop': 'Parar',
+      'btn.reset': 'Zerar',
+      'btn.pause': 'Pausar',
+      'btn.resume': 'Continuar',
+      'btn.stopAlarm': 'Desligar o alarme',
+      'cd.head': 'Data e hora do evento',
+      'cd.namePh': 'Nome do evento',
+      'cd.opts': 'Opções',
+      'cd.shade': 'Mostrar na barra de notificações',
+      'cd.sound': 'Alarme ao terminar (30 s)',
+      'cd.timer': 'Timer',
+      'cd.through': 'Em ',
+      'cd.endsAt': ', às ',
+      'cd.errZero': 'Escolha em quanto tempo ou informe uma data',
+      'cd.pickDate': 'Escolher a data do evento',
+      'cd.clear': 'Limpar',
+      'btn.cancel': 'Cancelar',
+      'btn.done': 'Pronto',
+      'un.s': 'segundos',
+      'un.mi': 'minutos',
+      'un.h': 'horas',
+      'un.d': 'dias',
+      'un.w': 'semanas',
+      'un.mo': 'meses',
+      'un.y': 'anos',
+      'ask.s': 'Quantos segundos?',
+      'ask.mi': 'Quantos minutos?',
+      'ask.h': 'Quantas horas?',
+      'ask.d': 'Quantos dias?',
+      'ask.w': 'Quantas semanas?',
+      'ask.mo': 'Quantos meses?',
+      'ask.y': 'Quantos anos?',
+      'cd.hint': 'A contagem usa o relógio do sistema: continua com o app minimizado ou após reiniciar. A barra de notificações e o alarme com a tela bloqueada exigem o app instalado.',
+      'cd.errEmpty': 'Informe a data e a hora do evento',
+      'cd.errPast': 'O horário escolhido já passou',
+      'cd.until': 'Tempo restante',
+      'cd.done': 'Tempo esgotado',
+      'cd.paused': 'Pausado',
+      'cd.at': 'Evento: ',
+      'cd.noName': 'Evento',
+      'u.y': 'a',
+      'u.mo': 'mês',
+      'u.w': 'sem',
+      'u.d': 'd',
+      'u.h': 'h',
+      'u.min': 'min',
+      'u.sec': 's',
+      'p.min1': '+1 min',
+      'p.min5': '+5 min',
+      'p.min15': '+15 min',
+      'p.h1': '+1 hora',
+      'p.d1': '+1 dia',
+      'p.w1': '+1 semana',
+      'p.mo1': '+1 mês',
+      'p.y1': '+1 ano',
+      't.phases': 'Fases (em ciclo)',
+      't.addPhase': '+ Adicionar fase',
+      't.params': 'Opções',
+      't.cycles': 'Número de ciclos (rounds)',
+      't.warn': 'Aviso 10 s antes do fim',
+      't.round': 'Round',
+      't.rest': 'Descanso',
+      't.phaseN': 'Fase ',
+      't.cycleOf': 'Ciclo {a} de {b}',
+      't.ready': 'PRONTO',
+      't.finished': 'Treino concluído',
+      'snd.none': 'Sem som',
+      'snd.beep': 'Bipe',
+      'snd.whistle': 'Apito',
+      'snd.gong': 'Gongo',
+      'snd.bell': 'Sino',
+      't.cueVol': 'Volume do sinal',
+      't.warnSnd': 'Som do aviso',
+      'snd.warn': 'Batida de martelo',
+      't.customSounds': 'Sons próprios',
+      't.custom': 'Som próprio {n}',
+      't.pick': 'Escolher',
+      't.notSet': 'nenhum arquivo',
+      'upd.text': 'Atualização disponível',
+      'upd.btn': 'Atualizar',
+      'shade.noApp': 'A barra de notificações só funciona no app instalado',
+      'shade.bridge': 'Erro da ponte: {e}',
+      'shade.oldApk': 'APK desatualizado: diagnóstico indisponível',
+      'shade.svcErr': 'Falha do serviço: {e}',
+      'shade.notifOff': 'As notificações deste app estão bloqueadas no sistema',
+      'shade.chanOff': 'O canal "Contagem na barra" está desativado nas configurações de notificação',
+      'shade.notPassed': 'A contagem não foi passada para a parte nativa',
+      'shade.killed': 'O sistema parou o serviço da barra'
+    },
+    de: {
+      'lang.title': 'Sprache',
+      'app.title': 'Stoppuhr',
+      'tab.sw': 'Stoppuhr',
+      'tab.cd': 'Countdown',
+      'tab.rounds': 'Runden',
+      't.pickSound': 'Ton auswählen',
+      'rate.title': 'Bewertung abgeben',
+      'rate.text': 'Wenn die App nützlich war, bewerte sie bei Google Play. Eine Bewertung hilft anderen, sie zu finden, und mir zu sehen, was ich verbessern kann.',
+      'rate.btn': 'Bewerten',
+      'rate.later': 'Später',
+      'btn.start': 'Start',
+      'btn.stop': 'Stopp',
+      'btn.reset': 'Zurücksetzen',
+      'btn.pause': 'Pause',
+      'btn.resume': 'Weiter',
+      'btn.stopAlarm': 'Signal ausschalten',
+      'cd.head': 'Datum und Uhrzeit des Ereignisses',
+      'cd.namePh': 'Name des Ereignisses',
+      'cd.opts': 'Optionen',
+      'cd.shade': 'In der Benachrichtigungsleiste anzeigen',
+      'cd.sound': 'Signal am Ende (30 Sek.)',
+      'cd.timer': 'Timer',
+      'cd.through': 'In ',
+      'cd.endsAt': ', um ',
+      'cd.errZero': 'Wähle eine Dauer oder gib ein Datum an',
+      'cd.pickDate': 'Datum des Ereignisses wählen',
+      'cd.clear': 'Löschen',
+      'btn.cancel': 'Abbrechen',
+      'btn.done': 'Fertig',
+      'un.s': 'Sekunden',
+      'un.mi': 'Minuten',
+      'un.h': 'Stunden',
+      'un.d': 'Tage',
+      'un.w': 'Wochen',
+      'un.mo': 'Monate',
+      'un.y': 'Jahre',
+      'ask.s': 'Wie viele Sekunden?',
+      'ask.mi': 'Wie viele Minuten?',
+      'ask.h': 'Wie viele Stunden?',
+      'ask.d': 'Wie viele Tage?',
+      'ask.w': 'Wie viele Wochen?',
+      'ask.mo': 'Wie viele Monate?',
+      'ask.y': 'Wie viele Jahre?',
+      'cd.hint': 'Der Countdown läuft über die Systemuhr: Er läuft weiter, wenn die App minimiert ist oder nach einem Neustart. Benachrichtigungsleiste und Signal bei gesperrtem Bildschirm brauchen die installierte App.',
+      'cd.errEmpty': 'Gib Datum und Uhrzeit des Ereignisses an',
+      'cd.errPast': 'Die gewählte Zeit liegt in der Vergangenheit',
+      'cd.until': 'Verbleibende Zeit',
+      'cd.done': 'Zeit ist um',
+      'cd.paused': 'Pausiert',
+      'cd.at': 'Ereignis: ',
+      'cd.noName': 'Ereignis',
+      'u.y': 'J',
+      'u.mo': 'Mon',
+      'u.w': 'Wo',
+      'u.d': 'T',
+      'u.h': 'Std',
+      'u.min': 'Min',
+      'u.sec': 'Sek',
+      'p.min1': '+1 Min',
+      'p.min5': '+5 Min',
+      'p.min15': '+15 Min',
+      'p.h1': '+1 Stunde',
+      'p.d1': '+1 Tag',
+      'p.w1': '+1 Woche',
+      'p.mo1': '+1 Monat',
+      'p.y1': '+1 Jahr',
+      't.phases': 'Phasen (im Kreis)',
+      't.addPhase': '+ Phase hinzufügen',
+      't.params': 'Optionen',
+      't.cycles': 'Anzahl der Zyklen (Runden)',
+      't.warn': 'Warnsignal 10 Sek. vor Ende',
+      't.round': 'Runde',
+      't.rest': 'Pause',
+      't.phaseN': 'Phase ',
+      't.cycleOf': 'Zyklus {a} von {b}',
+      't.ready': 'FERTIG',
+      't.finished': 'Training beendet',
+      'snd.none': 'Kein Ton',
+      'snd.beep': 'Piep',
+      'snd.whistle': 'Pfiff',
+      'snd.gong': 'Gong',
+      'snd.bell': 'Glocke',
+      't.cueVol': 'Signallautstärke',
+      't.warnSnd': 'Warnton',
+      'snd.warn': 'Hammerschlag',
+      't.customSounds': 'Eigene Töne',
+      't.custom': 'Eigener Ton {n}',
+      't.pick': 'Auswählen',
+      't.notSet': 'keine Datei',
+      'upd.text': 'Update verfügbar',
+      'upd.btn': 'Aktualisieren',
+      'shade.noApp': 'Die Benachrichtigungsleiste funktioniert nur in der installierten App',
+      'shade.bridge': 'Bridge-Fehler: {e}',
+      'shade.oldApk': 'Veraltetes APK – Diagnose nicht verfügbar',
+      'shade.svcErr': 'Dienst fehlgeschlagen: {e}',
+      'shade.notifOff': 'Benachrichtigungen für diese App sind im System blockiert',
+      'shade.chanOff': 'Der Kanal „Countdown in der Leiste“ ist in den Benachrichtigungseinstellungen deaktiviert',
+      'shade.notPassed': 'Der Countdown wurde nicht an den nativen Teil übergeben',
+      'shade.killed': 'Der Dienst wurde vom System beendet'
+    },
+    ka: {
+      'lang.title': 'ენა',
+      'app.title': 'წამზომი',
+      'tab.sw': 'წამზომი',
+      'tab.cd': 'ათვლა',
+      'tab.rounds': 'რაუნდები',
+      't.pickSound': 'ხმის არჩევა',
+      'rate.title': 'დატოვეთ შეფასება',
+      'rate.text': 'თუ აპლიკაცია გამოგადგათ, შეაფასეთ Google Play-ზე. შეფასება სხვებს დაეხმარება მის პოვნაში, მე კი დამეხმარება გავიგო, რა გავაუმჯობესო.',
+      'rate.btn': 'შეფასება',
+      'rate.later': 'მოგვიანებით',
+      'btn.start': 'დაწყება',
+      'btn.stop': 'გაჩერება',
+      'btn.reset': 'განულება',
+      'btn.pause': 'პაუზა',
+      'btn.resume': 'გაგრძელება',
+      'btn.stopAlarm': 'სიგნალის გამორთვა',
+      'cd.head': 'მოვლენის თარიღი და დრო',
+      'cd.namePh': 'მოვლენის სახელი',
+      'cd.opts': 'პარამეტრები',
+      'cd.shade': 'ჩვენება შეტყობინებების ზოლში',
+      'cd.sound': 'სიგნალი დასრულებისას (30 წმ)',
+      'cd.timer': 'ტაიმერი',
+      'cd.through': '',
+      'cd.endsAt': ' — ',
+      'cd.errZero': 'აირჩიეთ დრო ან მიუთითეთ თარიღი',
+      'cd.pickDate': 'მოვლენის თარიღის არჩევა',
+      'cd.clear': 'გასუფთავება',
+      'btn.cancel': 'გაუქმება',
+      'btn.done': 'მზადაა',
+      'un.s': 'წამი',
+      'un.mi': 'წუთი',
+      'un.h': 'საათი',
+      'un.d': 'დღე',
+      'un.w': 'კვირა',
+      'un.mo': 'თვე',
+      'un.y': 'წელი',
+      'ask.s': 'რამდენი წამი?',
+      'ask.mi': 'რამდენი წუთი?',
+      'ask.h': 'რამდენი საათი?',
+      'ask.d': 'რამდენი დღე?',
+      'ask.w': 'რამდენი კვირა?',
+      'ask.mo': 'რამდენი თვე?',
+      'ask.y': 'რამდენი წელი?',
+      'cd.hint': 'ათვლა სისტემურ საათზეა მიბმული: მუშაობს აპის ჩაკეცვისას და გადატვირთვის შემდეგაც. შეტყობინებების ზოლი და ხმა ჩაკეტილ ეკრანზე საჭიროებს დაინსტალირებულ აპს.',
+      'cd.errEmpty': 'მიუთითეთ მოვლენის თარიღი და დრო',
+      'cd.errPast': 'არჩეული დრო უკვე გავიდა',
+      'cd.until': 'დარჩენილი დრო',
+      'cd.done': 'დრო ამოიწურა',
+      'cd.paused': 'პაუზა',
+      'cd.at': 'მოვლენა: ',
+      'cd.noName': 'მოვლენა',
+      'u.y': 'წ',
+      'u.mo': 'თვე',
+      'u.w': 'კვ',
+      'u.d': 'დღ',
+      'u.h': 'სთ',
+      'u.min': 'წთ',
+      'u.sec': 'წმ',
+      'p.min1': '+1 წთ',
+      'p.min5': '+5 წთ',
+      'p.min15': '+15 წთ',
+      'p.h1': '+1 სთ',
+      'p.d1': '+1 დღე',
+      'p.w1': '+1 კვირა',
+      'p.mo1': '+1 თვე',
+      'p.y1': '+1 წელი',
+      't.phases': 'ფაზები (წრეზე მეორდება)',
+      't.addPhase': '+ ფაზის დამატება',
+      't.params': 'პარამეტრები',
+      't.cycles': 'ციკლების რაოდენობა (რაუნდები)',
+      't.warn': 'გამაფრთხილებელი სიგნალი 10 წმ-ით ადრე',
+      't.round': 'რაუნდი',
+      't.rest': 'დასვენება',
+      't.phaseN': 'ფაზა ',
+      't.cycleOf': 'ციკლი {a} / {b}',
+      't.ready': 'მზადაა',
+      't.finished': 'ვარჯიში დასრულდა',
+      'snd.none': 'ხმის გარეშე',
+      'snd.beep': 'ბიპი',
+      'snd.whistle': 'სასტვენი',
+      'snd.gong': 'გონგი',
+      'snd.bell': 'ზარი',
+      't.cueVol': 'სიგნალის ხმა',
+      't.warnSnd': 'გაფრთხილების ხმა',
+      'snd.warn': 'ჩაქუჩის დარტყმა',
+      't.customSounds': 'საკუთარი ხმები',
+      't.custom': 'საკუთარი ხმა {n}',
+      't.pick': 'არჩევა',
+      't.notSet': 'ფაილი არ არის არჩეული',
+      'upd.text': 'ხელმისაწვდომია განახლება',
+      'upd.btn': 'განახლება',
+      'shade.noApp': 'შეტყობინებების ზოლი მუშაობს მხოლოდ დაინსტალირებულ აპში',
+      'shade.bridge': 'ხიდის შეცდომა: {e}',
+      'shade.oldApk': 'ძველი APK — დიაგნოსტიკა მიუწვდომელია',
+      'shade.svcErr': 'სერვისის შეცდომა: {e}',
+      'shade.notifOff': 'ამ აპის შეტყობინებები სისტემაში დაბლოკილია',
+      'shade.chanOff': 'არხი „ათვლა ზოლში" გამორთულია შეტყობინებების პარამეტრებში',
+      'shade.notPassed': 'ათვლა არ გადაეცა ნატიურ ნაწილს',
+      'shade.killed': 'ზოლის სერვისი სისტემამ გააჩერა'
     }
   };
+
+  /* Названия языков пишем на них самих: человек узнает своё, даже если
+     сейчас включён чужой. LOCALES нужен только для дат и времени. */
+  const LANG_NAMES = {
+    ru: 'Русский', en: 'English', es: 'Español',
+    pt: 'Português', de: 'Deutsch', ka: 'ქართული'
+  };
+  const LOCALES = {
+    ru: 'ru-RU', en: 'en-GB', es: 'es-ES',
+    pt: 'pt-BR', de: 'de-DE', ka: 'ka-GE'
+  };
+  function locale() { return LOCALES[LANG] || 'en-GB'; }
 
   const LANG_KEY = 'sw.lang';
   let LANG = (function () {
     try {
       const saved = localStorage.getItem(LANG_KEY);
-      if (saved === 'ru' || saved === 'en') return saved;
+      if (saved && I18N[saved]) return saved;
     } catch (e) {}
-    return (navigator.language || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+    // первый запуск: берём язык телефона, если он у нас есть
+    const sys = (navigator.language || 'en').toLowerCase().slice(0, 2);
+    return I18N[sys] ? sys : 'en';
   })();
 
   function t(key, vars) {
-    let str = (I18N[LANG] && I18N[LANG][key]) || (I18N.ru[key]) || key;
+    const d = I18N[LANG];
+    // пустая строка — тоже перевод, поэтому проверяем наличие ключа, а не истинность
+    let str = (d && key in d) ? d[key] : (key in I18N.ru ? I18N.ru[key] : key);
     if (vars) for (const k in vars) str = str.replace('{' + k + '}', vars[k]);
     return str;
   }
@@ -1814,7 +2255,7 @@
     });
     cdDateTile.classList.toggle('set', !!pickedDate);
     cdDateTile.firstElementChild.textContent = pickedDate
-      ? pickedDate.toLocaleString(LANG === 'ru' ? 'ru-RU' : 'en-GB',
+      ? pickedDate.toLocaleString(locale(),
           { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : t('cd.pickDate');
     renderDuration();
@@ -1868,9 +2309,9 @@
     if (b.s)  parts.push(b.s + ' ' + t('u.sec'));
 
     const end = new Date(ts);
-    const loc = LANG === 'ru' ? 'ru-RU' : 'en-GB';
+    const loc = locale();
     const when = (ts - now) < 24 * 3600 * 1000
-      ? end.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
+      ? end.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false })
       : end.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' });
     cdDurationLine.textContent = t('cd.through') + parts.slice(0, 3).join(' ') + t('cd.endsAt') + when;
   }
@@ -2013,7 +2454,7 @@
     cdClock.classList.remove('fired');
     cdSub.textContent = CD.paused
       ? t('cd.paused')
-      : t('cd.at') + new Date(CD.target).toLocaleString(LANG === 'ru' ? 'ru-RU' : 'en-GB');
+      : t('cd.at') + new Date(CD.target).toLocaleString(locale());
 
     if (shadeStatusTick++ % 8 === 0) renderShadeStatus();   // раз в ~2 секунды
 
@@ -2194,7 +2635,7 @@
 
   /* ============ ПЕРЕКЛЮЧЕНИЕ ЯЗЫКА ============ */
   function applyLang(lang) {
-    LANG = (lang === 'ru' || lang === 'en') ? lang : 'en';
+    LANG = I18N[lang] ? lang : 'en';
     try { localStorage.setItem(LANG_KEY, LANG); } catch (e) {}
 
     document.documentElement.lang = LANG;
@@ -2207,7 +2648,7 @@
       el.placeholder = t(el.dataset.i18nPh);
     });
 
-    document.getElementById('langBtn').textContent = LANG === 'ru' ? 'EN' : 'RU';
+    document.getElementById('langBtn').textContent = LANG.toUpperCase();
 
     // динамика, которую нельзя покрыть атрибутами
     ssBtn.textContent = swRunning ? t('btn.stop') : t('btn.start');
@@ -2222,9 +2663,31 @@
     renderShadeStatus();
   }
 
-  document.getElementById('langBtn').addEventListener('click', () => {
-    applyLang(LANG === 'ru' ? 'en' : 'ru');
-  });
+  /* Языков стало шесть, тумблером не обойтись — открываем список. */
+  (function () {
+    const modal = document.getElementById('langModal');
+    const list  = document.getElementById('langList');
+
+    Object.keys(LANG_NAMES).forEach(code => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = LANG_NAMES[code];
+      b.dataset.lang = code;
+      b.addEventListener('click', () => {
+        applyLang(code);
+        modal.classList.add('hidden');
+      });
+      list.appendChild(b);
+    });
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+      list.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('on', b.dataset.lang === LANG));
+      modal.classList.remove('hidden');
+    });
+    document.getElementById('langClose').addEventListener('click',
+      () => modal.classList.add('hidden'));
+  })();
 
   unitValues.mi = 5;           // по умолчанию 5 минут — экран не выглядит пустым
   applyLang(LANG);
