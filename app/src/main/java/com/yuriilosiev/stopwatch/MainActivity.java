@@ -53,6 +53,19 @@ public class MainActivity extends Activity {
     /** Слот пользовательского звука, для которого сейчас открыт выбор файла. */
     private String pendingSlot = null;
 
+    /**
+     * Брать интерфейс из пакета, а не из сети. Включается, когда сети нет,
+     * когда страница не загрузилась и когда сеть есть, но до сайта не достучаться:
+     * раньше в этом последнем случае человек с работающим интернетом видел
+     * заглушку «Нет соединения» и удалял приложение.
+     */
+    private volatile boolean useLocal = false;
+    private boolean pageLoaded = false;
+    private final android.os.Handler ui =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    /** Сколько ждём сеть, прежде чем показать копию из пакета. */
+    private static final long LOAD_TIMEOUT_MS = 3000;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,7 +101,7 @@ public class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
                 Uri u = (req == null) ? null : req.getUrl();
                 if (u == null || !APP_HOST.equals(u.getHost())) return null;
-                if (isOnline()) return null;
+                if (!useLocal && isOnline()) return null;
 
                 String name = u.getLastPathSegment();
                 if (name == null || name.isEmpty() || "index.html".equals(name)) name = "app.html";
@@ -104,18 +117,32 @@ public class MainActivity extends Activity {
                 }
             }
 
-            /** Сети нет и копии в пакете не нашлось — показываем заглушку. */
+            /** Страница не загрузилась — переключаемся на копию из пакета. */
             @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                if (req != null && req.isForMainFrame()) {
-                    view.loadUrl("file:///android_asset/offline.html");
-                }
+                if (req != null && req.isForMainFrame()) fallbackToLocal();
+            }
+
+            /** Сайт ответил ошибкой (403, 404, 5xx) — то же самое. */
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest req,
+                                            WebResourceResponse resp) {
+                if (req != null && req.isForMainFrame()) fallbackToLocal();
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                pageLoaded = true;
             }
         });
 
         web.setBackgroundColor(0xFF0A0A0F);
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.loadUrl(APP_URL);
+        // Сеть может молчать, не выдавая ошибки: ждём недолго и показываем копию.
+        ui.postDelayed(new Runnable() {
+            @Override public void run() { if (!pageLoaded) fallbackToLocal(); }
+        }, LOAD_TIMEOUT_MS);
 
         SoundPlayer.init(this);
 
@@ -262,6 +289,16 @@ public class MainActivity extends Activity {
                         "window.onCustomSoundsChanged && window.onCustomSoundsChanged();", null));
             });
         }).start();
+    }
+
+    /** Переключиться на встроенную копию и открыть её по тому же адресу сайта,
+     *  чтобы origin не поменялся и настройки в localStorage остались на месте. */
+    private void fallbackToLocal() {
+        if (useLocal) return;              // уже на копии, второй раз не перезагружаем
+        useLocal = true;
+        ui.post(new Runnable() {
+            @Override public void run() { if (web != null) web.loadUrl(APP_URL); }
+        });
     }
 
     /** Есть ли сейчас работающее соединение. */
