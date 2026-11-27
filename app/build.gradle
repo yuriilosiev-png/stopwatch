@@ -31,10 +31,17 @@ android {
         }
     }
 
+    // R8 включён по рекомендации Play Console (память и скорость). Правила, которые
+    // берегут мост Android для страницы, — в proguard-rules.pro. R8 включён и в debug:
+    // APK, который ставится на телефон для проверки, собирается так же, как AAB для Play.
     buildTypes {
         release {
             if (System.getenv("KEYSTORE_FILE")) signingConfig signingConfigs.release
-            minifyEnabled false
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
